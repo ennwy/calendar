@@ -4,17 +4,17 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"github.com/ennwy/calendar/internal/app"
+	"github.com/ennwy/calendar/internal/logger"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/app"
-	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/logger"
-	interhttp "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/server/http"
-	memstorage "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage/memory"
-	sqlstorage "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage/sql"
+	interhttp "github.com/ennwy/calendar/internal/server/http"
+	memstorage "github.com/ennwy/calendar/internal/storage/memory"
+	sqlstorage "github.com/ennwy/calendar/internal/storage/sql"
 )
 
 var configPath string
