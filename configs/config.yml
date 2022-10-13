@@ -1,0 +1,18 @@
+version: "3.9"
+
+logger:
+  level: "debug"
+  outputPath: "stdout"
+storage: "sql"
+http:
+  host: "0.0.0.0"
+  port: "8000"
+grpc:
+  host: "0.0.0.0"
+  port: "9000"
+b:
+  user: "postgres"
+  password: "test"
+  name: "test"
+  host: "localhost"
+  port: "5432"

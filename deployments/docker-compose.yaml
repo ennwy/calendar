@@ -1,0 +1,33 @@
+version: '3.9'
+
+services:
+  calendar:
+    build:
+      dockerfile: ../build/Dockerfile
+        - "config"
+    restart: on-failure
+    depends_on:
+      - db
+    environment:
+      - DATABASE_USER=${DB_USER}
+      - DATABASE_PASSWORD=${DB_PASSWORD}
+      - DATABASE_NAME=${DB_NAME}
+      - DATABASE_HOST=${DB_HOST}
+      - DATABASE_PORT=${DB_PORT}
+      - DATABASE_DRIVER=${DB_DRIVER}
+    ports:
+      - "8000:8000"
+
+  db:
+    restart: always
+    image: postgres:latest
+    volumes:
+      - ./.database/postgres/data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - DATABASE_HOST=${DB_HOST}
+      - DATABASE_PORT=${DB_PORT}
+    ports:
+      - "5433:5432"
