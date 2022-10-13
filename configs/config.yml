@@ -10,7 +10,7 @@ http:
 grpc:
   host: "0.0.0.0"
   port: "9000"
-b:
+db:
   user: "postgres"
   password: "test"
   name: "test"
