@@ -1,4 +1,4 @@
-package server
+package httpapi
 
 import (
 	"bytes"
@@ -10,19 +10,13 @@ import (
 )
 
 const (
-	CreateEventPath = "/create"
-	UpdateEventPath = "/update"
-	DeleteEventPath = "/delete"
-	ListEventsPath  = "/list"
-
-	// Query arguments.
 	argID     = "id"
 	argOwner  = "owner"
 	argTitle  = "title"
 	argStart  = "start"
 	argFinish = "finish"
 
-	timeLayout = "2006-01-02_15:04:05_0000_UTC"
+	TimeLayout = "2006-01-02T15:04:05.999999999Z"
 )
 
 type EventString struct {
@@ -38,12 +32,12 @@ func (e *EventString) convertToEvent() (*storage.Event, error) {
 		return nil, fmt.Errorf("parsing owner id: %w", err)
 	}
 
-	startTime, err := time.ParseInLocation(timeLayout, e.Start, time.UTC)
+	startTime, err := time.ParseInLocation(TimeLayout, e.Start, time.UTC)
 	if err != nil {
 		return nil, fmt.Errorf("parsing start time: %w", err)
 	}
 
-	finishTime, err := time.ParseInLocation(timeLayout, e.Finish, time.UTC)
+	finishTime, err := time.ParseInLocation(TimeLayout, e.Finish, time.UTC)
 	if err != nil {
 		return nil, fmt.Errorf("parsing finish time: %w", err)
 	}
@@ -65,9 +59,9 @@ func printEvents(w http.ResponseWriter, e ...storage.Event) {
 		b.WriteByte(' ')
 		b.WriteString(strconv.FormatInt(e[i].OwnerID, 10))
 		b.WriteByte(' ')
-		b.WriteString(e[i].Start.Format(timeLayout))
+		b.WriteString(e[i].Start.Format(TimeLayout))
 		b.WriteByte(' ')
-		b.WriteString(e[i].Finish.Format(timeLayout))
+		b.WriteString(e[i].Finish.Format(TimeLayout))
 		b.Write([]byte{' ', '"'})
 		b.WriteString(e[i].Title)
 		b.Write([]byte{'"', '\n'})
@@ -82,13 +76,15 @@ func respondAndLog(w http.ResponseWriter, err error) {
 	l.Error(err)
 }
 
-func (s *Server) create(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Create(w http.ResponseWriter, r *http.Request) {
 	eventString := &EventString{
 		Owner:  r.FormValue(argOwner),
 		Title:  r.FormValue(argTitle),
 		Start:  r.FormValue(argStart),
 		Finish: r.FormValue(argFinish),
 	}
+	l.Info("adjf;alsdfj")
+	l.Info(eventString)
 
 	event, err := eventString.convertToEvent()
 	if err != nil {
@@ -96,22 +92,25 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = s.app.CreateEvent(s.ctx, event); err != nil {
+	if err = s.App.CreateEvent(s.Ctx, event); err != nil {
 		respondAndLog(w, err)
 	}
 
 	printEvents(w, *event)
 }
 
-func (s *Server) list(w http.ResponseWriter, r *http.Request) {
+func (s *Server) List(w http.ResponseWriter, r *http.Request) {
 	owner := r.FormValue(argOwner)
+	l.Info("adjf;alsdfj")
+	l.Info(owner)
+
 	ownerID, err := strconv.ParseInt(owner, 10, 64)
 	if err != nil {
 		respondAndLog(w, err)
 		return
 	}
 
-	e, err := s.app.ListEvents(s.ctx, ownerID)
+	e, err := s.App.ListEvents(s.Ctx, ownerID)
 	if err != nil {
 		respondAndLog(w, err)
 		return
@@ -120,7 +119,7 @@ func (s *Server) list(w http.ResponseWriter, r *http.Request) {
 	printEvents(w, e...)
 }
 
-func (s *Server) update(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Update(w http.ResponseWriter, r *http.Request) {
 	eventString := &EventString{
 		Owner:  r.FormValue(argOwner),
 		Title:  r.FormValue(argTitle),
@@ -142,19 +141,19 @@ func (s *Server) update(w http.ResponseWriter, r *http.Request) {
 
 	event.ID = id
 
-	if err = s.app.UpdateEvent(s.ctx, *event); err != nil {
+	if err = s.App.UpdateEvent(s.Ctx, *event); err != nil {
 		respondAndLog(w, err)
 	}
 }
 
-func (s *Server) delete(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.FormValue(argID), 10, 64)
 	if err != nil {
 		respondAndLog(w, err)
 		return
 	}
 
-	if err = s.app.DeleteEvent(s.ctx, id); err != nil {
+	if err = s.App.DeleteEvent(s.Ctx, id); err != nil {
 		respondAndLog(w, err)
 	}
 }

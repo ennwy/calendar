@@ -8,32 +8,40 @@ import "google/api/annotations.proto";
 
 option go_package = "/";
 
-message ID {
+message Event {
     int64 ID = 1;
+    int64 OwnerID = 2;
+    string Title = 3;
+    google.protobuf.Timestamp Start = 4;
+    google.protobuf.Timestamp Finish = 5;
 }
 
-message Event {
-    ID EventID = 1;
-    ID OwnerID = 2;
-    string Title = 3;
-    google.protobuf.Timestamp StartTime = 4;
-    google.protobuf.Timestamp SinishTime = 5;
-}
 
 message Events {
     repeated Event Events = 1;
 }
 
 service Storage {
-    rpc Connect(google.protobuf.Empty) returns (google.protobuf.Empty) {}
-    rpc Close(google.protobuf.Empty) returns (google.protobuf.Empty) {}
-    rpc Create(Event) returns (google.protobuf.Empty) {}
-    rpc List(google.protobuf.Empty) returns (Events) {
-      option (google.api.http) = {
-      get: "/list{owner}"
-      body: "*"
-    };
+    rpc CreateEvent(Event) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            get: "/create/{OwnerID}/{Title}/{Start}/{Finish}"
+        };
     }
-    rpc Update(Event) returns (google.protobuf.Empty) {}
-    rpc Delete(ID) returns (google.protobuf.Empty) {}
+    rpc ListEvents(Event) returns (Events) {
+        option (google.api.http) = {
+            get: "/list/{OwnerID}"
+        };
+    }
+
+    rpc UpdateEvent(Event) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            get: "/update/{ID}/{Title}/{Start}/{Finish}"
+        };
+    }
+
+    rpc DeleteEvent(Event) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            get: "/delete/{ID}"
+        };
+    }
 }

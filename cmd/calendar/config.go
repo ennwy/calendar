@@ -8,9 +8,10 @@ import (
 
 type Config struct {
 	Logger  LoggerConfig `yaml:"logger"`
-	Storage string       `yaml:"storage"`
 	HTTP    HTTPConfig   `yaml:"http"`
+	GRPC    GRPCConfig   `yaml:"grpc"`
 	DB      DBConfig     `yaml:"db"`
+	Storage string       `yaml:"storage"`
 }
 
 type DBConfig struct {
@@ -45,6 +46,11 @@ type LoggerConfig struct {
 }
 
 type HTTPConfig struct {
+	Host string `yaml:"host"`
+	Port string `yaml:"port"`
+}
+
+type GRPCConfig struct {
 	Host string `yaml:"host"`
 	Port string `yaml:"port"`
 }

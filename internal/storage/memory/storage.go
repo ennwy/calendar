@@ -81,5 +81,6 @@ func (s *Storage) DeleteEvent(_ context.Context, eventID int64) error {
 			delete(m, eventID)
 		}
 	}
+
 	return nil
 }

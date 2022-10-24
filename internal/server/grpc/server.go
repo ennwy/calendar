@@ -1,63 +1,89 @@
-package server
+package grpcapi
 
 import (
 	"context"
-	"google.golang.org/grpc/reflection"
-	"log"
+	"google.golang.org/grpc"
 	"net"
+	"net/http"
 
 	"github.com/ennwy/calendar/internal/app"
-	"google.golang.org/grpc"
+
+	api "github.com/ennwy/calendar/internal/server"
+	pb "github.com/ennwy/calendar/internal/server/grpc/google"
+	gg "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 )
 
-type Logger interface {
-	app.Logger
+type GRPCServer struct {
+	Ctx        context.Context
+	Server     *grpc.Server
+	HTTPServer *http.Server
+	App        app.Storage
+	Addr       string
+	pb.UnimplementedStorageServer
 }
 
-type Application interface {
-	app.Storage
+var _ pb.StorageServer = (*GRPCServer)(nil)
+
+type GRPCLog struct {
+	l api.Logger
 }
 
-type Server struct {
-	server     *grpc.Server
-	app        Application
-	host, port string
+func (l *GRPCLog) Log(data ...interface{}) error {
+	l.l.Info(data)
+	return nil
 }
 
-var l Logger
+var l api.Logger
 
-func NewServer(logger Logger, app Application, host, port string) *Server {
-	l = logger
+func NewServer(ctx context.Context, log api.Logger, app app.Storage, addr string) *GRPCServer {
+	l = log
 
-	return &Server{
-		app:    app,
-		server: grpc.NewServer(),
-		host:   host,
-		port:   port,
+	s := &GRPCServer{
+		Ctx:    ctx,
+		App:    app,
+		Server: grpc.NewServer(),
+		Addr:   addr,
 	}
+
+	mux := gg.NewServeMux()
+
+	if err := pb.RegisterStorageHandlerServer(s.Ctx, mux, s); err != nil {
+		l.Fatal(err)
+	}
+
+	s.HTTPServer = &http.Server{
+		Handler: api.LogMiddleware(mux, l),
+	}
+
+	pb.RegisterStorageServer(s.Server, s)
+
+	return s
 }
 
-func (s *Server) Start(ctx context.Context) error {
-	if err := s.app.Connect(ctx); err != nil {
+func (s *GRPCServer) Start(ctx context.Context) error {
+	if err := s.App.Connect(ctx); err != nil {
 		return err
 	}
 
-	_, err := net.Listen("tcp", net.JoinHostPort(s.host, s.port))
+	lis, err := net.Listen("tcp", s.Addr)
 	if err != nil {
-		log.Fatalf("failed to listen %v", err)
+		return err
 	}
-	reflection.Register(s.server)
 
-	l.Info("[ + ] GRPC STARTED")
+	l.Error("[ + ] GRPC STARTED:", err)
+	err = s.HTTPServer.Serve(lis)
+
 	return err
 }
 
-func (s *Server) Stop(ctx context.Context) error {
-	if err := s.app.Close(ctx); err != nil {
+func (s *GRPCServer) Stop(ctx context.Context) error {
+	if err := s.App.Close(ctx); err != nil {
 		return err
 	}
 
-	l.Info("\n[ + ] GRPC STOPPED")
-	s.server.GracefulStop()
-	return nil
+	s.Server.GracefulStop()
+	err := s.HTTPServer.Shutdown(ctx)
+	l.Error("\n[ + ] GRPC STOPPED:", err)
+
+	return err
 }

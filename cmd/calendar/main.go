@@ -6,13 +6,14 @@ import (
 	"flag"
 	"github.com/ennwy/calendar/internal/app"
 	"github.com/ennwy/calendar/internal/logger"
+	intergrpc "github.com/ennwy/calendar/internal/server/grpc"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	interhttp "github.com/ennwy/calendar/internal/server/http"
 	memstorage "github.com/ennwy/calendar/internal/storage/memory"
 	sqlstorage "github.com/ennwy/calendar/internal/storage/sql"
 )
@@ -56,12 +57,13 @@ func main() {
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
-	server := interhttp.NewServer(ctx, l, calendar, config.HTTP.Host, config.HTTP.Port)
+	addr := net.JoinHostPort(config.HTTP.Host, config.HTTP.Port)
+	server := intergrpc.NewServer(ctx, l, calendar, addr)
 
 	go func() {
 		<-ctx.Done()
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+		ctx, cancel := context.WithTimeout(ctx, time.Second*3)
 		defer cancel()
 
 		if err := server.Stop(ctx); err != nil {

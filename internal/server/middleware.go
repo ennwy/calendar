@@ -1,11 +1,10 @@
 package server
 
-import (
-	"net/http"
-)
+import "net/http"
 
-func logMiddleware(next http.Handler) http.Handler {
-	l.Info("[ + ] Middleware Started")
+func LogMiddleware(next http.Handler, l Logger) http.Handler {
+	l.Info("[ + ] Middleware was set up")
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := r.Body.Close(); err != nil {
@@ -13,7 +12,7 @@ func logMiddleware(next http.Handler) http.Handler {
 			}
 		}()
 
-		info := NewHTTPInfo(r)
+		info := NewLogInfo(r)
 		next.ServeHTTP(w, r)
 		l.Info(info.String())
 	})
