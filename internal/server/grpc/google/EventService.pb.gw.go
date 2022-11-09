@@ -32,7 +32,7 @@ var _ = utilities.NewDoubleArray
 var _ = metadata.Join
 
 var (
-	filter_Storage_CreateEvent_0 = &utilities.DoubleArray{Encoding: map[string]int{"OwnerID": 0, "Title": 1, "Start": 2, "Finish": 3}, Base: []int{1, 1, 2, 3, 4, 0, 0, 0, 0}, Check: []int{0, 1, 1, 1, 1, 2, 3, 4, 5}}
+	filter_Storage_CreateEvent_0 = &utilities.DoubleArray{Encoding: map[string]int{"Owner": 0, "Name": 1, "Title": 2, "Start": 3, "Finish": 4, "Notify": 5}, Base: []int{1, 1, 1, 2, 3, 4, 5, 0, 0, 0, 0, 0}, Check: []int{0, 1, 2, 1, 1, 1, 1, 3, 4, 5, 6, 7}}
 )
 
 func request_Storage_CreateEvent_0(ctx context.Context, marshaler runtime.Marshaler, client StorageClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
@@ -46,14 +46,14 @@ func request_Storage_CreateEvent_0(ctx context.Context, marshaler runtime.Marsha
 		_   = err
 	)
 
-	val, ok = pathParams["OwnerID"]
+	val, ok = pathParams["Owner.Name"]
 	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "OwnerID")
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "Owner.Name")
 	}
 
-	protoReq.OwnerID, err = runtime.Int64(val)
+	err = runtime.PopulateFieldFromPath(&protoReq, "Owner.Name", val)
 	if err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "OwnerID", err)
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Owner.Name", err)
 	}
 
 	val, ok = pathParams["Title"]
@@ -84,6 +84,16 @@ func request_Storage_CreateEvent_0(ctx context.Context, marshaler runtime.Marsha
 	protoReq.Finish, err = runtime.Timestamp(val)
 	if err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Finish", err)
+	}
+
+	val, ok = pathParams["Notify"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "Notify")
+	}
+
+	protoReq.Notify, err = runtime.Int32(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Notify", err)
 	}
 
 	if err := req.ParseForm(); err != nil {
@@ -109,14 +119,14 @@ func local_request_Storage_CreateEvent_0(ctx context.Context, marshaler runtime.
 		_   = err
 	)
 
-	val, ok = pathParams["OwnerID"]
+	val, ok = pathParams["Owner.Name"]
 	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "OwnerID")
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "Owner.Name")
 	}
 
-	protoReq.OwnerID, err = runtime.Int64(val)
+	err = runtime.PopulateFieldFromPath(&protoReq, "Owner.Name", val)
 	if err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "OwnerID", err)
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Owner.Name", err)
 	}
 
 	val, ok = pathParams["Title"]
@@ -149,6 +159,16 @@ func local_request_Storage_CreateEvent_0(ctx context.Context, marshaler runtime.
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Finish", err)
 	}
 
+	val, ok = pathParams["Notify"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "Notify")
+	}
+
+	protoReq.Notify, err = runtime.Int32(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Notify", err)
+	}
+
 	if err := req.ParseForm(); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
@@ -162,7 +182,7 @@ func local_request_Storage_CreateEvent_0(ctx context.Context, marshaler runtime.
 }
 
 var (
-	filter_Storage_ListEvents_0 = &utilities.DoubleArray{Encoding: map[string]int{"OwnerID": 0}, Base: []int{1, 1, 0}, Check: []int{0, 1, 2}}
+	filter_Storage_ListEvents_0 = &utilities.DoubleArray{Encoding: map[string]int{"Owner": 0, "Name": 1}, Base: []int{1, 1, 1, 0}, Check: []int{0, 1, 2, 3}}
 )
 
 func request_Storage_ListEvents_0(ctx context.Context, marshaler runtime.Marshaler, client StorageClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
@@ -176,14 +196,14 @@ func request_Storage_ListEvents_0(ctx context.Context, marshaler runtime.Marshal
 		_   = err
 	)
 
-	val, ok = pathParams["OwnerID"]
+	val, ok = pathParams["Owner.Name"]
 	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "OwnerID")
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "Owner.Name")
 	}
 
-	protoReq.OwnerID, err = runtime.Int64(val)
+	err = runtime.PopulateFieldFromPath(&protoReq, "Owner.Name", val)
 	if err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "OwnerID", err)
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Owner.Name", err)
 	}
 
 	if err := req.ParseForm(); err != nil {
@@ -209,14 +229,14 @@ func local_request_Storage_ListEvents_0(ctx context.Context, marshaler runtime.M
 		_   = err
 	)
 
-	val, ok = pathParams["OwnerID"]
+	val, ok = pathParams["Owner.Name"]
 	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "OwnerID")
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "Owner.Name")
 	}
 
-	protoReq.OwnerID, err = runtime.Int64(val)
+	err = runtime.PopulateFieldFromPath(&protoReq, "Owner.Name", val)
 	if err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "OwnerID", err)
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Owner.Name", err)
 	}
 
 	if err := req.ParseForm(); err != nil {
@@ -232,7 +252,7 @@ func local_request_Storage_ListEvents_0(ctx context.Context, marshaler runtime.M
 }
 
 var (
-	filter_Storage_UpdateEvent_0 = &utilities.DoubleArray{Encoding: map[string]int{"ID": 0, "Title": 1, "Start": 2, "Finish": 3}, Base: []int{1, 1, 2, 3, 4, 0, 0, 0, 0}, Check: []int{0, 1, 1, 1, 1, 2, 3, 4, 5}}
+	filter_Storage_UpdateEvent_0 = &utilities.DoubleArray{Encoding: map[string]int{"ID": 0, "Title": 1, "Start": 2, "Finish": 3, "Notify": 4}, Base: []int{1, 1, 2, 3, 4, 5, 0, 0, 0, 0, 0}, Check: []int{0, 1, 1, 1, 1, 1, 2, 3, 4, 5, 6}}
 )
 
 func request_Storage_UpdateEvent_0(ctx context.Context, marshaler runtime.Marshaler, client StorageClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
@@ -284,6 +304,16 @@ func request_Storage_UpdateEvent_0(ctx context.Context, marshaler runtime.Marsha
 	protoReq.Finish, err = runtime.Timestamp(val)
 	if err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Finish", err)
+	}
+
+	val, ok = pathParams["Notify"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "Notify")
+	}
+
+	protoReq.Notify, err = runtime.Int32(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Notify", err)
 	}
 
 	if err := req.ParseForm(); err != nil {
@@ -347,6 +377,16 @@ func local_request_Storage_UpdateEvent_0(ctx context.Context, marshaler runtime.
 	protoReq.Finish, err = runtime.Timestamp(val)
 	if err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Finish", err)
+	}
+
+	val, ok = pathParams["Notify"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "Notify")
+	}
+
+	protoReq.Notify, err = runtime.Int32(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Notify", err)
 	}
 
 	if err := req.ParseForm(); err != nil {
@@ -431,7 +471,7 @@ func local_request_Storage_DeleteEvent_0(ctx context.Context, marshaler runtime.
 
 }
 
-// RegisterStorageHandlerServer registers the http handlers for service Storage to "mux".
+// RegisterStorageHandlerServer registers the http handlers for service storage to "mux".
 // UnaryRPC     :call StorageServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
 // Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterStorageHandlerFromEndpoint instead.
@@ -445,7 +485,7 @@ func RegisterStorageHandlerServer(ctx context.Context, mux *runtime.ServeMux, se
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.Storage/CreateEvent", runtime.WithHTTPPathPattern("/create/{OwnerID}/{Title}/{Start}/{Finish}"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.storage/CreateEvent", runtime.WithHTTPPathPattern("/create/{Owner.Name}/{Title}/{Start}/{Finish}/{Notify}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -470,7 +510,7 @@ func RegisterStorageHandlerServer(ctx context.Context, mux *runtime.ServeMux, se
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.Storage/ListEvents", runtime.WithHTTPPathPattern("/list/{OwnerID}"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.storage/ListEvents", runtime.WithHTTPPathPattern("/list/{Owner.Name}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -495,7 +535,7 @@ func RegisterStorageHandlerServer(ctx context.Context, mux *runtime.ServeMux, se
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.Storage/UpdateEvent", runtime.WithHTTPPathPattern("/update/{ID}/{Title}/{Start}/{Finish}"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.storage/UpdateEvent", runtime.WithHTTPPathPattern("/update/{ID}/{Title}/{Start}/{Finish}/{Notify}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -520,7 +560,7 @@ func RegisterStorageHandlerServer(ctx context.Context, mux *runtime.ServeMux, se
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.Storage/DeleteEvent", runtime.WithHTTPPathPattern("/delete/{ID}"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.storage/DeleteEvent", runtime.WithHTTPPathPattern("/delete/{ID}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -565,13 +605,13 @@ func RegisterStorageHandlerFromEndpoint(ctx context.Context, mux *runtime.ServeM
 	return RegisterStorageHandler(ctx, mux, conn)
 }
 
-// RegisterStorageHandler registers the http handlers for service Storage to "mux".
+// RegisterStorageHandler registers the http handlers for service storage to "mux".
 // The handlers forward requests to the grpc endpoint over "conn".
 func RegisterStorageHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc.ClientConn) error {
 	return RegisterStorageHandlerClient(ctx, mux, NewStorageClient(conn))
 }
 
-// RegisterStorageHandlerClient registers the http handlers for service Storage
+// RegisterStorageHandlerClient registers the http handlers for service storage
 // to "mux". The handlers forward requests to the grpc endpoint over the given implementation of "StorageClient".
 // Note: the gRPC framework executes interceptors within the gRPC handler. If the passed in "StorageClient"
 // doesn't go through the normal gRPC flow (creating a gRPC client etc.) then it will be up to the passed in
@@ -584,7 +624,7 @@ func RegisterStorageHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.Storage/CreateEvent", runtime.WithHTTPPathPattern("/create/{OwnerID}/{Title}/{Start}/{Finish}"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.storage/CreateEvent", runtime.WithHTTPPathPattern("/create/{Owner.Name}/{Title}/{Start}/{Finish}/{Notify}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -606,7 +646,7 @@ func RegisterStorageHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.Storage/ListEvents", runtime.WithHTTPPathPattern("/list/{OwnerID}"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.storage/ListEvents", runtime.WithHTTPPathPattern("/list/{Owner.Name}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -628,7 +668,7 @@ func RegisterStorageHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.Storage/UpdateEvent", runtime.WithHTTPPathPattern("/update/{ID}/{Title}/{Start}/{Finish}"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.storage/UpdateEvent", runtime.WithHTTPPathPattern("/update/{ID}/{Title}/{Start}/{Finish}/{Notify}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -650,7 +690,7 @@ func RegisterStorageHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.Storage/DeleteEvent", runtime.WithHTTPPathPattern("/delete/{ID}"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.storage/DeleteEvent", runtime.WithHTTPPathPattern("/delete/{ID}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -670,11 +710,11 @@ func RegisterStorageHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 }
 
 var (
-	pattern_Storage_CreateEvent_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 1, 0, 4, 1, 5, 1, 1, 0, 4, 1, 5, 2, 1, 0, 4, 1, 5, 3, 1, 0, 4, 1, 5, 4}, []string{"create", "OwnerID", "Title", "Start", "Finish"}, ""))
+	pattern_Storage_CreateEvent_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 1, 0, 4, 1, 5, 1, 1, 0, 4, 1, 5, 2, 1, 0, 4, 1, 5, 3, 1, 0, 4, 1, 5, 4, 1, 0, 4, 1, 5, 5}, []string{"create", "Owner.Name", "Title", "Start", "Finish", "Notify"}, ""))
 
-	pattern_Storage_ListEvents_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 1, 0, 4, 1, 5, 1}, []string{"list", "OwnerID"}, ""))
+	pattern_Storage_ListEvents_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 1, 0, 4, 1, 5, 1}, []string{"list", "Owner.Name"}, ""))
 
-	pattern_Storage_UpdateEvent_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 1, 0, 4, 1, 5, 1, 1, 0, 4, 1, 5, 2, 1, 0, 4, 1, 5, 3, 1, 0, 4, 1, 5, 4}, []string{"update", "ID", "Title", "Start", "Finish"}, ""))
+	pattern_Storage_UpdateEvent_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 1, 0, 4, 1, 5, 1, 1, 0, 4, 1, 5, 2, 1, 0, 4, 1, 5, 3, 1, 0, 4, 1, 5, 4, 1, 0, 4, 1, 5, 5}, []string{"update", "ID", "Title", "Start", "Finish", "Notify"}, ""))
 
 	pattern_Storage_DeleteEvent_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 1, 0, 4, 1, 5, 1}, []string{"delete", "ID"}, ""))
 )

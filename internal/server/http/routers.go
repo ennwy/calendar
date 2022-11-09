@@ -3,6 +3,7 @@ package httpapi
 import (
 	"bytes"
 	"fmt"
+	api "github.com/ennwy/calendar/internal/server"
 	"github.com/ennwy/calendar/internal/storage"
 	"net/http"
 	"strconv"
@@ -15,24 +16,22 @@ const (
 	argTitle  = "title"
 	argStart  = "start"
 	argFinish = "finish"
+	argNotify = "notify"
 
 	TimeLayout = "2006-01-02T15:04:05.999999999Z"
 )
 
 type EventString struct {
-	Owner  string
-	Title  string
-	Start  string
-	Finish string
+	OwnerName string
+	Title     string
+	Start     string
+	Finish    string
+	Notify    string
 }
 
 func (e *EventString) convertToEvent() (*storage.Event, error) {
-	ownerID, err := strconv.ParseInt(e.Owner, 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("parsing owner id: %w", err)
-	}
-
 	startTime, err := time.ParseInLocation(TimeLayout, e.Start, time.UTC)
+
 	if err != nil {
 		return nil, fmt.Errorf("parsing start time: %w", err)
 	}
@@ -42,28 +41,33 @@ func (e *EventString) convertToEvent() (*storage.Event, error) {
 		return nil, fmt.Errorf("parsing finish time: %w", err)
 	}
 
+	if !startTime.Before(finishTime) {
+		return nil, api.ErrTime
+	}
+
 	return &storage.Event{
-			Start:   startTime,
-			Finish:  finishTime,
-			Title:   e.Title,
-			OwnerID: ownerID,
+			Start:  startTime,
+			Finish: finishTime,
+			Title:  e.Title,
+			Owner:  storage.User{Name: e.OwnerName},
 		},
 		nil
 }
 
-func printEvents(w http.ResponseWriter, e ...storage.Event) {
+func printEvents(w http.ResponseWriter, events ...storage.Event) {
 	b := bytes.Buffer{}
 
-	for i := range e {
-		b.WriteString(strconv.FormatInt(e[i].ID, 10))
+	for _, e := range events {
+
+		b.WriteString(strconv.FormatInt(e.ID, 10))
 		b.WriteByte(' ')
-		b.WriteString(strconv.FormatInt(e[i].OwnerID, 10))
+		b.WriteString(e.Owner.Name)
 		b.WriteByte(' ')
-		b.WriteString(e[i].Start.Format(TimeLayout))
+		b.WriteString(e.Start.Format(TimeLayout))
 		b.WriteByte(' ')
-		b.WriteString(e[i].Finish.Format(TimeLayout))
+		b.WriteString(e.Finish.Format(TimeLayout))
 		b.Write([]byte{' ', '"'})
-		b.WriteString(e[i].Title)
+		b.WriteString(e.Title)
 		b.Write([]byte{'"', '\n'})
 
 		_, _ = w.Write(b.Bytes())
@@ -78,12 +82,12 @@ func respondAndLog(w http.ResponseWriter, err error) {
 
 func (s *Server) Create(w http.ResponseWriter, r *http.Request) {
 	eventString := &EventString{
-		Owner:  r.FormValue(argOwner),
-		Title:  r.FormValue(argTitle),
-		Start:  r.FormValue(argStart),
-		Finish: r.FormValue(argFinish),
+		OwnerName: r.FormValue(argOwner),
+		Title:     r.FormValue(argTitle),
+		Start:     r.FormValue(argStart),
+		Finish:    r.FormValue(argFinish),
+		Notify:    r.FormValue(argNotify),
 	}
-	l.Info("adjf;alsdfj")
 	l.Info(eventString)
 
 	event, err := eventString.convertToEvent()
@@ -100,17 +104,9 @@ func (s *Server) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) List(w http.ResponseWriter, r *http.Request) {
-	owner := r.FormValue(argOwner)
-	l.Info("adjf;alsdfj")
-	l.Info(owner)
+	ownerName := r.FormValue(argOwner)
 
-	ownerID, err := strconv.ParseInt(owner, 10, 64)
-	if err != nil {
-		respondAndLog(w, err)
-		return
-	}
-
-	e, err := s.App.ListEvents(s.Ctx, ownerID)
+	e, err := s.App.ListUserEvents(s.Ctx, ownerName)
 	if err != nil {
 		respondAndLog(w, err)
 		return
@@ -121,10 +117,10 @@ func (s *Server) List(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) Update(w http.ResponseWriter, r *http.Request) {
 	eventString := &EventString{
-		Owner:  r.FormValue(argOwner),
-		Title:  r.FormValue(argTitle),
-		Start:  r.FormValue(argStart),
-		Finish: r.FormValue(argFinish),
+		OwnerName: r.FormValue(argOwner),
+		Title:     r.FormValue(argTitle),
+		Start:     r.FormValue(argStart),
+		Finish:    r.FormValue(argFinish),
 	}
 
 	event, err := eventString.convertToEvent()
@@ -141,7 +137,7 @@ func (s *Server) Update(w http.ResponseWriter, r *http.Request) {
 
 	event.ID = id
 
-	if err = s.App.UpdateEvent(s.Ctx, *event); err != nil {
+	if err = s.App.UpdateEvent(s.Ctx, event); err != nil {
 		respondAndLog(w, err)
 	}
 }

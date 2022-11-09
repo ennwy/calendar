@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/ennwy/calendar/internal/app"
 	"github.com/ennwy/calendar/internal/storage"
@@ -11,10 +12,17 @@ import (
 )
 
 const (
-	dbSelect = "SELECT * FROM events WHERE ownerID = $1;"
-	dbInsert = "INSERT INTO events(startTime, finishTime, title, ownerId) VALUES ($1, $2, $3, $4) RETURNING id;"
-	dbUpdate = "UPDATE events SET startTime = $2, finishTime = $3, title = $4 WHERE ID = $1;"
-	dbDelete = "DELETE FROM events WHERE ID = $1;"
+	qCreate     = `SELECT NEW_EVENT(owner := $1, title := $2, start := $3, finish := $4, notify := $5);`
+	qUpdate     = "UPDATE events SET title = $2, start = $3, finish = $4, notify = $5 WHERE ID = $1;"
+	qDelete     = "DELETE FROM events WHERE ID = $1;"
+	qUserEvents = "SELECT * FROM events WHERE owner = $1;"
+	// BETWEEN ISN'T USED BECAUSE WE DON'T NEED NOTIFY TO BE EQUAL SECOND ARG
+	qListUpcoming = "SELECT * FROM events WHERE notify >= $1 AND notify < $2;"
+	qClean        = "DELETE FROM events WHERE finish <= $1"
+
+	// Time format for db select
+	dayRounded    = "2006-01-02"
+	minuteRounded = "2006-01-02 15:04:05"
 )
 
 type Storage struct {
@@ -22,7 +30,10 @@ type Storage struct {
 	config *DBConfig
 }
 
-var _ app.Storage = (*Storage)(nil)
+var (
+	_ app.Storage       = (*Storage)(nil)
+	_ app.CleanListener = (*Storage)(nil)
+)
 
 var l app.Logger
 
@@ -70,66 +81,126 @@ func NewDBConf() *DBConfig {
 }
 
 func (s *Storage) Connect(ctx context.Context) (err error) {
-	s.db, err = pgx.Connect(ctx, s.config.getConnectString())
-	return err
+	if s.db, err = pgx.Connect(ctx, s.config.getConnectString()); err != nil {
+		return fmt.Errorf("storage connect: %w", err)
+	}
+	return nil
 }
 
 func (s *Storage) Close(ctx context.Context) error {
-	return s.db.Close(ctx)
+	if err := s.db.Close(ctx); err != nil {
+		return fmt.Errorf("storage close: %w", err)
+	}
+
+	return nil
 }
 
 func (s *Storage) CreateEvent(ctx context.Context, e *storage.Event) error {
+	l.Info("Create EVENT", e.Owner.Name)
+
 	row := s.db.QueryRow(
 		ctx,
-		dbInsert,
+		qCreate,
 
+		e.Owner.Name,
+		e.Title,
 		e.Start,
 		e.Finish,
-		e.Title,
-		e.OwnerID,
+		e.GetNotifyTime(),
 	)
-
-	return row.Scan(&e.ID)
+	err := row.Scan(&e.ID)
+	l.Info("Create EVENT: New ID:", e.ID)
+	return err
 }
 
-func (s *Storage) ListEvents(ctx context.Context, ownerID int64) ([]storage.Event, error) {
-	rows, err := s.db.Query(ctx, dbSelect, ownerID)
-	if err != nil {
-		return nil, err
-	}
-
-	eventList := make([]storage.Event, 0, 1)
-
-	var e storage.Event
-
-	for rows.Next() {
-		err = rows.Scan(&e.ID, &e.OwnerID, &e.Start, &e.Finish, &e.Title)
-		if err != nil {
-			l.Error("sql storage  listing: ", err)
-			continue
-		}
-
-		eventList = append(eventList, e)
-	}
-
-	return eventList, err
-}
-
-func (s *Storage) UpdateEvent(ctx context.Context, e storage.Event) error {
+func (s *Storage) UpdateEvent(ctx context.Context, e *storage.Event) error {
 	_, err := s.db.Exec(
 		ctx,
-		dbUpdate,
+		qUpdate,
 
 		e.ID,
+		e.Title,
 		e.Start,
 		e.Finish,
-		e.Title,
+		e.GetNotifyTime(),
 	)
 
 	return err
 }
 
 func (s *Storage) DeleteEvent(ctx context.Context, eventID int64) error {
-	_, err := s.db.Exec(ctx, dbDelete, eventID)
-	return err
+	if _, err := s.db.Exec(ctx, qDelete, eventID); err != nil {
+		return fmt.Errorf("delete event: %w", err)
+	}
+	return nil
+}
+
+func (s *Storage) ListUserEvents(ctx context.Context, username string) ([]storage.Event, error) {
+	rows, err := s.db.Query(ctx, qUserEvents, username)
+	if err != nil {
+		return nil, fmt.Errorf("list events: %w", err)
+	}
+
+	return getEvents(rows), nil
+}
+
+func (s *Storage) ListUpcoming(ctx context.Context, until time.Duration) ([]storage.Event, error) {
+	if until < 0 {
+		until = -until
+	}
+	current := time.Now().Round(time.Minute)
+	bound := current.Add(until)
+
+	l.Info(current.Format(minuteRounded), bound.Format(minuteRounded))
+
+	rows, err := s.db.Query(
+		ctx,
+		qListUpcoming,
+		current.Format(minuteRounded),
+		bound.Format(minuteRounded),
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("list upcoming: %w", err)
+	}
+
+	return getEvents(rows), err
+}
+
+func (s *Storage) Clean(ctx context.Context, ago time.Duration) error {
+	if ago > 0 {
+		ago = -ago
+	}
+
+	finishedAgo := time.Now().Round(24 * time.Hour).In(time.UTC).Add(ago)
+
+	if _, err := s.db.Exec(
+		ctx,
+		qClean,
+		finishedAgo.Format(dayRounded),
+	); err != nil {
+		return fmt.Errorf("clean events: %w", err)
+	}
+	return nil
+}
+
+func getEvents(rows pgx.Rows) []storage.Event {
+	eventList := make([]storage.Event, 0, 1)
+	var notifyTime time.Time
+	var e storage.Event
+
+	for rows.Next() {
+		err := rows.Scan(&e.ID, &e.Owner.Name, &e.Owner.ID, &e.Title, &e.Start, &e.Finish, &notifyTime)
+
+		if err != nil {
+			l.Error("sql storage listing: ", err)
+			continue
+		}
+		e.SetNotifyByTime(notifyTime)
+
+		eventList = append(eventList, e)
+		e.Reset()
+	}
+
+	return eventList
 }

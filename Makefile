@@ -1,14 +1,23 @@
-BIN := "./bin/calendar"
-CONFIG := "./configs/config.yml"
+GIT_HASH := $(shell git log --format="%h" -n 1)
+
+CALENDAR := "./bin/calendar"
+SCHEDULER := "./bin/scheduler"
+SENDER := "./bin/sender"
+
+LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%dT%H:%M:%S) -X main.gitHash=$(GIT_HASH)
 
 build:
-	go build -v -o $(BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar
+	go build -v -o $(CALENDAR) -ldflags "$(LDFLAGS)" ./cmd/calendar
+	go build -v -o $(SCHEDULER) -ldflags "$(LDFLAGS)" ./cmd/scheduler
+	go build -v -o $(SENDER) -ldflags "$(LDFLAGS)" ./cmd/sender
 
 run: build
-	$(BIN) -config $(CONFIG)
+	$(CALENDAR) --config ./configs/calendar_config.yaml
+	#$(SCHEDULER) --config ./configs/scheduler_config.yaml
+	#$(SENDER) --config ./configs/sender_config.yaml
 
 version: build
-	$(BIN) version
+	$(CALENDAR_BIN) version
 
 test:
 	go test -v -race ./internal/...

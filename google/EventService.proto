@@ -8,12 +8,18 @@ import "google/api/annotations.proto";
 
 option go_package = "/";
 
+message User {
+    string Name = 1;
+    int64 ID = 2;
+}
+
 message Event {
     int64 ID = 1;
-    int64 OwnerID = 2;
+    User Owner = 2;
     string Title = 3;
     google.protobuf.Timestamp Start = 4;
     google.protobuf.Timestamp Finish = 5;
+    int32 Notify = 6;
 }
 
 
@@ -24,18 +30,18 @@ message Events {
 service Storage {
     rpc CreateEvent(Event) returns (google.protobuf.Empty) {
         option (google.api.http) = {
-            get: "/create/{OwnerID}/{Title}/{Start}/{Finish}"
+            get: "/create/{Owner.Name}/{Title}/{Start}/{Finish}/{Notify}"
         };
     }
     rpc ListEvents(Event) returns (Events) {
         option (google.api.http) = {
-            get: "/list/{OwnerID}"
+            get: "/list/{Owner.Name}"
         };
     }
 
     rpc UpdateEvent(Event) returns (google.protobuf.Empty) {
         option (google.api.http) = {
-            get: "/update/{ID}/{Title}/{Start}/{Finish}"
+            get: "/update/{ID}/{Title}/{Start}/{Finish}/{Notify}"
         };
     }
 

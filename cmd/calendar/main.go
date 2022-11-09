@@ -6,22 +6,21 @@ import (
 	"flag"
 	"github.com/ennwy/calendar/internal/app"
 	"github.com/ennwy/calendar/internal/logger"
+	sqlstorage "github.com/ennwy/calendar/internal/storage/sql"
+	"time"
+
 	intergrpc "github.com/ennwy/calendar/internal/server/grpc"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
-
-	memstorage "github.com/ennwy/calendar/internal/storage/memory"
-	sqlstorage "github.com/ennwy/calendar/internal/storage/sql"
 )
 
 var configPath string
 
 func init() {
-	flag.StringVar(&configPath, "config", "/etc/calendar/config.yml", "Path to configuration file")
+	flag.StringVar(&configPath, "config", "/etc/calendar/calendar_config.yaml", "Path to configuration file")
 }
 
 var l app.Logger
@@ -40,16 +39,7 @@ func main() {
 
 	l = logger.New(config.Logger.Level, config.Logger.OutputPath)
 
-	var storage app.Storage
-
-	switch config.Storage {
-	case "sql":
-		storage = sqlstorage.New(l)
-	case "mem", "memory":
-		storage = memstorage.New()
-	default:
-		l.Fatal("invalid storage type was given")
-	}
+	var storage app.Storage = sqlstorage.New(l)
 
 	calendar := app.New(l, storage)
 

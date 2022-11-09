@@ -19,10 +19,10 @@ func TestBasicLogic(t *testing.T) {
 		_ = s.CreateEvent(ctx, &testEvent1)
 		_ = s.CreateEvent(ctx, &testEvent2)
 
-		eventList1, _ := s.ListEvents(ctx, 1)
+		eventList1, _ := s.ListUserEvents(ctx, 1)
 		require.Equal(t, 1, len(eventList1))
 
-		eventList2, _ := s.ListEvents(ctx, 2)
+		eventList2, _ := s.ListUserEvents(ctx, 2)
 		require.Equal(t, 1, len(eventList2))
 		require.NotEqual(t, eventList1, eventList2)
 
@@ -30,21 +30,21 @@ func TestBasicLogic(t *testing.T) {
 		require.Equal(t, 2, len(allEvents))
 
 		_ = s.DeleteEvent(ctx, testEvent1.ID)
-		eventList1, _ = s.ListEvents(ctx, testEvent1.OwnerID)
+		eventList1, _ = s.ListUserEvents(ctx, testEvent1.OwnerID)
 
 		require.Equal(t, 0, len(eventList1))
 		require.Equal(t, 1, len(eventList2))
 
 		testEvent2.Title = "another title"
 		_ = s.UpdateEvent(ctx, testEvent2)
-		eventList2, _ = s.ListEvents(ctx, testEvent2.OwnerID)
+		eventList2, _ = s.ListUserEvents(ctx, testEvent2.OwnerID)
 
 		require.Equal(t, 1, len(eventList2))
 		require.Equal(t, testEvent2.OwnerID, eventList2[0].OwnerID)
 		require.Equal(t, testEvent2.Title, eventList2[0].Title)
 
 		_ = s.DeleteEvent(ctx, testEvent2.ID)
-		eventList2, _ = s.ListEvents(ctx, testEvent2.OwnerID)
+		eventList2, _ = s.ListUserEvents(ctx, testEvent2.OwnerID)
 		require.Equal(t, 0, len(eventList2))
 	})
 }
@@ -83,7 +83,7 @@ func TestAsync(t *testing.T) {
 
 			wg.Add(1)
 			go func(id int64, wg *sync.WaitGroup) {
-				e, _ := s.ListEvents(ctx, id)
+				e, _ := s.ListUserEvents(ctx, id)
 				_ = s.DeleteEvent(ctx, e[0].ID)
 
 				wg.Done()
@@ -135,7 +135,7 @@ func TestAsync(t *testing.T) {
 			wg.Add(1)
 
 			go func(i int64) {
-				_, _ = s.ListEvents(ctx, i)
+				_, _ = s.ListUserEvents(ctx, i)
 				wg.Done()
 			}(int64(i))
 		}
@@ -147,7 +147,7 @@ func TestAsync(t *testing.T) {
 func GlobalList(s *Storage, ownerIDs ...int64) []storage.Event {
 	allEvents := make([]storage.Event, 0)
 	for _, id := range ownerIDs {
-		list, _ := s.ListEvents(context.Background(), id)
+		list, _ := s.ListUserEvents(context.Background(), id)
 		allEvents = append(allEvents, list...)
 	}
 

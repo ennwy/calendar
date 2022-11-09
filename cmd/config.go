@@ -1,18 +1,8 @@
-package main
+package config
 
 import (
 	"os"
-
-	"github.com/ghodss/yaml"
 )
-
-type Config struct {
-	Logger  LoggerConfig `yaml:"logger"`
-	HTTP    HTTPConfig   `yaml:"http"`
-	GRPC    GRPCConfig   `yaml:"grpc"`
-	DB      DBConfig     `yaml:"db"`
-	Storage string       `yaml:"storage"`
-}
 
 type DBConfig struct {
 	User     string `yaml:"user"`
@@ -43,32 +33,4 @@ func (db *DBConfig) SetEnv() (err error) {
 type LoggerConfig struct {
 	Level      string `yaml:"level"`
 	OutputPath string `yaml:"outputPath"`
-}
-
-type HTTPConfig struct {
-	Host string `yaml:"host"`
-	Port string `yaml:"port"`
-}
-
-type GRPCConfig struct {
-	Host string `yaml:"host"`
-	Port string `yaml:"port"`
-}
-
-func NewConfig(path string) (*Config, error) {
-	configData, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	config := &Config{}
-	err = yaml.Unmarshal(configData, config)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = config.DB.SetEnv()
-
-	return config, err
 }
