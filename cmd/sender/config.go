@@ -1,10 +1,9 @@
 package main
 
 import (
+	"fmt"
 	c "github.com/ennwy/calendar/cmd"
 	noti "github.com/ennwy/calendar/internal/notification"
-	"github.com/ghodss/yaml"
-	"os"
 )
 
 type Config struct {
@@ -12,18 +11,13 @@ type Config struct {
 	MQ     noti.MQConsume `yaml:"mq"`
 }
 
-func NewConfig(path string) (*Config, error) {
-	configData, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
+func NewConfig() (*Config, error) {
 	config := &Config{}
-	err = yaml.Unmarshal(configData, config)
+	config.Logger.Set()
 
-	if err != nil {
-		return nil, err
+	if err := config.MQ.Set(); err != nil {
+		return nil, fmt.Errorf("sender: new config: %w", err)
 	}
 
-	return config, err
+	return config, nil
 }

@@ -24,7 +24,7 @@ func NewLogInfo(r *http.Request) *LogInfo {
 
 	info := &LogInfo{
 		ip:          ip,
-		date:        time.Now().In(time.UTC).Format("2006-01-02 15:04:05"),
+		date:        time.Now().UTC().Format("2006-01-02 15:04:05"),
 		httpVersion: r.Proto,
 		httpMethod:  r.Method,
 		path:        r.URL.Path,
@@ -42,7 +42,7 @@ func NewLogInfo(r *http.Request) *LogInfo {
 }
 
 func (i *LogInfo) String() string {
-	return fmt.Sprintf("%s [%s] %s %q %s %q %s %s",
+	return fmt.Sprintf("%s [%s] %s %s %s %q %s %s",
 		i.ip,
 		i.date,
 		i.httpMethod,

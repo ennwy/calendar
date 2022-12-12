@@ -1,0 +1,16 @@
+FROM golang:1.19 as build
+
+ENV BIN_FILE /opt/tests
+ENV CODE_DIR /go/src
+
+WORKDIR ${CODE_DIR}
+
+COPY ./internal/storage/event.go ${CODE_DIR}/event/event.go
+COPY ./integration-tests ${CODE_DIR}/integration-tests
+
+RUN go mod init tests
+RUN go mod tidy
+
+WORKDIR integration-tests
+
+#RUN CGO_ENABLED=0 go test -co ./bin ./integration-tests/...

@@ -1,6 +1,46 @@
 version: '3.9'
 
 services:
+  integration-tests:
+    container_name: "integration-tests"
+#    image: 1.19.3-alpine3.17
+    build:
+      context: ..
+      dockerfile: ./build/Dockerfile_tests
+    depends_on:
+      - calendar
+      - scheduler
+      - sender
+    environment:
+    - LOG_LEVEL=${LOG_LEVEL}
+    - LOG_OUTPUT_PATH=${LOG_OUTPUT_PATH}
+
+    - GRPC_HOST=${GRPC_HOST}
+    - GRPC_PORT=${GRPC_PORT}
+
+    - HTTP_HOST=${HTTP_HOST}
+    - HTTP_PORT=${HTTP_PORT}
+
+    - TEST_HOST=calendar
+    - TEST_PORT=${HTTP_PORT}
+
+    - STORAGE=${STORAGE}
+
+    - DATABASE_USER=${DB_USER}
+    - DATABASE_PASSWORD=${DB_PASSWORD}
+    - DATABASE_NAME=${DB_NAME}
+    - DATABASE_HOST=${DB_HOST}
+    - DATABASE_PORT=${DB_PORT}
+
+    - MQ_Q_NAME=${MQ_Q_NAME}
+    - MQ_URL=${MQ_URL}
+    - MQ_MANDATORY=${MQ_MANDATORY}
+    - MQ_IMMEDIATE=${MQ_IMMEDIATE}
+    - MQ_DURABLE=${MQ_DURABLE}
+    - MQ_AUTO_DELETE=${MQ_AUTO_DELETE}
+    - MQ_EXCLUSIVE=${MQ_EXCLUSIVE}
+    - MQ_NO_WAIT=${MQ_NO_WAIT}
+
 
   calendar:
     container_name: "calendar"
@@ -84,9 +124,6 @@ services:
     container_name: "rabbitmq"
     restart: on-failure
     image: rabbitmq:3.11.3-management-alpine
-    volumes:
-      - ../.data/rabbitmq/data:/var/lib/rabbitmq/mnesia/rabbit@my-rabbit
-      - ../.data/rabbitmq/logs:/var/log/rabbitmq/log
     hostname: ${MQ_HOSTNAME}
     expose:
       - "15672:15672"
@@ -95,8 +132,6 @@ services:
   db:
     container_name: "postgres"
     image: postgres:15.1-alpine
-    volumes:
-      - ../.data/database/postgres/data:/var/lib/postgresql/data
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
@@ -106,7 +141,6 @@ services:
     ports:
       - "5432:5432"
 
-
   migrate:
     container_name: "migrate"
     build:
@@ -114,8 +148,6 @@ services:
       dockerfile: ./build/Dockerfile_migrate
     restart: on-failure
     image: migrate/migrate
-    volumes:
-      - ./.database/postgres/migrations:/migrations
     command: [
       /opt/migrate/goose, postgres,
       "host=${DB_HOST} password=${DB_PASSWORD} \
@@ -125,6 +157,5 @@ services:
     ]
     depends_on:
       - db
-
 
 

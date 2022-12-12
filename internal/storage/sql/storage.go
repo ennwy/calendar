@@ -13,12 +13,13 @@ import (
 
 const (
 	qCreate     = `SELECT NEW_EVENT(owner := $1, title := $2, start := $3, finish := $4, notify := $5);`
-	qUpdate     = "UPDATE events SET title = $2, start = $3, finish = $4, notify = $5 WHERE ID = $1;"
+	qUpdate     = "UPDATE events SET title = $2, start = $3, finish = $4, notify = $5 WHERE id = $1;"
 	qDelete     = "DELETE FROM events WHERE ID = $1;"
 	qUserEvents = "SELECT * FROM events WHERE owner = $1;"
 	// BETWEEN ISN'T USED BECAUSE WE DON'T NEED NOTIFY TO BE EQUAL SECOND ARG
-	qListUpcoming = "SELECT * FROM events WHERE notify >= $1 AND notify < $2;"
-	qClean        = "DELETE FROM events WHERE finish <= $1"
+	qListUpcoming      = "SELECT * FROM events WHERE notify >= $1 AND notify < $2;"
+	qListUsersUpcoming = "SELECT * FROM events WHERE Owner = $1 AND notify >= $2 AND notify < $3"
+	qClean             = "DELETE FROM events WHERE finish <= $1"
 
 	// Time format for db select
 	dayRounded    = "2006-01-02"
@@ -96,8 +97,6 @@ func (s *Storage) Close(ctx context.Context) error {
 }
 
 func (s *Storage) CreateEvent(ctx context.Context, e *storage.Event) error {
-	l.Info("Create EVENT", e.Owner.Name)
-
 	row := s.db.QueryRow(
 		ctx,
 		qCreate,
@@ -109,7 +108,8 @@ func (s *Storage) CreateEvent(ctx context.Context, e *storage.Event) error {
 		e.GetNotifyTime(),
 	)
 	err := row.Scan(&e.ID)
-	l.Info("Create EVENT: New ID:", e.ID)
+	l.Info("Created EVENT: ID:", e.ID, "; Owner:", e.Owner.Name)
+
 	return err
 }
 
@@ -135,8 +135,8 @@ func (s *Storage) DeleteEvent(ctx context.Context, eventID int64) error {
 	return nil
 }
 
-func (s *Storage) ListUserEvents(ctx context.Context, username string) ([]storage.Event, error) {
-	rows, err := s.db.Query(ctx, qUserEvents, username)
+func (s *Storage) ListUserEvents(ctx context.Context, user string) ([]storage.Event, error) {
+	rows, err := s.db.Query(ctx, qUserEvents, user)
 	if err != nil {
 		return nil, fmt.Errorf("list events: %w", err)
 	}
@@ -151,11 +151,36 @@ func (s *Storage) ListUpcoming(ctx context.Context, until time.Duration) ([]stor
 	current := time.Now().Round(time.Minute)
 	bound := current.Add(until)
 
-	l.Info(current.Format(minuteRounded), bound.Format(minuteRounded))
+	l.Info("Looking for events between:", current.Format(minuteRounded), "AND", bound.Format(minuteRounded))
 
 	rows, err := s.db.Query(
 		ctx,
 		qListUpcoming,
+		current.Format(minuteRounded),
+		bound.Format(minuteRounded),
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("list upcoming: %w", err)
+	}
+
+	return getEvents(rows), err
+}
+
+func (s *Storage) ListUsersUpcoming(ctx context.Context, user string, until time.Duration) ([]storage.Event, error) {
+	if until < 0 {
+		until = -until
+	}
+
+	current := time.Now().Round(time.Minute)
+	bound := current.Add(until)
+
+	l.Info("Looking for events between:", current.Format(minuteRounded), "AND", bound.Format(minuteRounded))
+
+	rows, err := s.db.Query(
+		ctx,
+		qListUsersUpcoming,
+		user,
 		current.Format(minuteRounded),
 		bound.Format(minuteRounded),
 	)
@@ -172,7 +197,7 @@ func (s *Storage) Clean(ctx context.Context, ago time.Duration) error {
 		ago = -ago
 	}
 
-	finishedAgo := time.Now().Round(24 * time.Hour).In(time.UTC).Add(ago)
+	finishedAgo := time.Now().Round(24 * time.Hour).UTC().Add(ago)
 
 	if _, err := s.db.Exec(
 		ctx,
@@ -190,14 +215,21 @@ func getEvents(rows pgx.Rows) []storage.Event {
 	var e storage.Event
 
 	for rows.Next() {
-		err := rows.Scan(&e.ID, &e.Owner.Name, &e.Owner.ID, &e.Title, &e.Start, &e.Finish, &notifyTime)
-
-		if err != nil {
+		if err := rows.Scan(
+			&e.ID,
+			&e.Owner.Name,
+			&e.Owner.ID,
+			&e.Title,
+			&e.Start,
+			&e.Finish,
+			&notifyTime,
+		); err != nil {
 			l.Error("sql storage listing: ", err)
 			continue
 		}
-		e.SetNotifyByTime(notifyTime)
 
+		e.SetNotifyByTime(notifyTime)
+		l.Info("Notify from base:", e.Notify)
 		eventList = append(eventList, e)
 		e.Reset()
 	}

@@ -3,6 +3,7 @@ syntax = "proto3";
 package event;
 
 import "google/protobuf/timestamp.proto";
+//import "google/protobuf/duration.proto";
 import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
 
@@ -10,7 +11,7 @@ option go_package = "/";
 
 message User {
     string Name = 1;
-    int64 ID = 2;
+    int64  ID = 2;
 }
 
 message Event {
@@ -22,9 +23,20 @@ message Event {
     int32 Notify = 6;
 }
 
-
 message Events {
     repeated Event Events = 1;
+}
+
+message Upcoming {
+    enum Period {
+        Day = 0;
+        Week = 1;
+        Month = 2;
+    }
+
+    User Owner = 1;
+    Period Until = 2;
+
 }
 
 service Storage {
@@ -33,9 +45,15 @@ service Storage {
             get: "/create/{Owner.Name}/{Title}/{Start}/{Finish}/{Notify}"
         };
     }
-    rpc ListEvents(Event) returns (Events) {
+    rpc ListEvents(User) returns (Events) {
         option (google.api.http) = {
-            get: "/list/{Owner.Name}"
+            get: "/list/{Name}"
+        };
+    }
+
+    rpc ListUpcoming(Upcoming) returns (Events) {
+        option (google.api.http) = {
+            get: "/list/{Owner.Name}/{Until}"
         };
     }
 

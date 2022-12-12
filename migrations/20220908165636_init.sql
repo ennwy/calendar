@@ -1,20 +1,20 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE users
+CREATE TABLE IF NOT EXISTS users
 (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(30) UNIQUE
+    name VARCHAR(30) UNIQUE NOT NULL
 );
 
-CREATE TABLE events
+CREATE TABLE IF NOT EXISTS events
 (
     id SERIAL PRIMARY KEY,
     owner VARCHAR(30) NOT NULL,
     ownerID INTEGER NOT NULL,
     title VARCHAR(255),
-    start TIMESTAMP,
-    finish TIMESTAMP,
-    notify TIMESTAMP,
+    start TIMESTAMP NOT NULL,
+    finish TIMESTAMP NOT NULL,
+    notify TIMESTAMP NOT NULL,
     CONSTRAINT fk_owner FOREIGN KEY (owner) REFERENCES users(name),
     CONSTRAINT fk_ownerID FOREIGN KEY(ownerID) REFERENCES users(id)
 );
@@ -25,6 +25,7 @@ CREATE OR REPLACE FUNCTION NEW_EVENT (
     finish TIMESTAMP,
     notify TIMESTAMP,
     title VARCHAR(255)
+
 ) RETURNS INTEGER AS $$
     DECLARE
         identifier INTEGER := 0;

@@ -1,0 +1,23 @@
+FROM golang:1.19 as build
+
+ENV BIN_FILE /opt/migrate/goose
+ENV REPO "goose_repo"
+ENV CODE_DIR /go/src/
+
+WORKDIR ${CODE_DIR}
+
+RUN git clone https://github.com/pressly/goose.git
+WORKDIR goose
+
+RUN CGO_ENABLED=0 go build \
+        -tags='no_mysql no_sqlite3' \
+        -o ${BIN_FILE} ./cmd/goose
+
+FROM alpine:3.9
+
+ENV BIN_DIR /opt/migrate
+ENV BIN_FILE ${BIN_DIR}/goose
+COPY --from=build ${BIN_FILE} ${BIN_FILE}
+COPY ./migrations/20220908165636_init.sql ${BIN_DIR}
+
+WORKDIR ${BIN_DIR}

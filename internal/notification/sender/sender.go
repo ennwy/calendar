@@ -28,13 +28,13 @@ func NewSender(ctx context.Context, log Logger, opts noti.MQConsume) (s *Sender,
 
 	s = &Sender{ctx: ctx, opts: opts}
 	if s.conn, err = amqp.Dial(opts.Q.URL); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new sender dial: %w", err)
 	}
 
 	if s.ch, err = s.conn.Channel(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new sender: ch conn: %w", err)
 	}
-
+	l.Warn("sender created")
 	return s, nil
 }
 
@@ -53,29 +53,34 @@ func (s *Sender) Start() error {
 		return fmt.Errorf("consumer create: %w", err)
 	}
 
+	l.Info("listening started")
+	s.receive(messageCH)
+	return nil
+}
+
+func (s *Sender) receive(messageCH <-chan amqp.Delivery) {
 	var e storage.Event
 	var counter int
 
 	for message := range messageCH {
 		select {
 		case <-s.ctx.Done():
-			return nil
+			return
 		default:
 		}
 
-		if err = e.Unmarshall(message.Body); err != nil {
+		if err := e.Unmarshall(message.Body); err != nil {
 			l.Error("unmarshall event:", err)
 			continue
 		}
+
 		l.Info("[", counter, "]", e)
 		counter++
 
-		if err = message.Ack(false); err != nil {
+		if err := message.Ack(false); err != nil {
 			l.Error("message ack:", err)
 		}
 	}
-
-	return nil
 }
 
 func (s *Sender) Stop() (err error) {

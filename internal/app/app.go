@@ -26,10 +26,11 @@ type Storage interface {
 	CreateEvent(ctx context.Context, event *storage.Event) error
 	UpdateEvent(ctx context.Context, event *storage.Event) error
 	DeleteEvent(ctx context.Context, eventID int64) error
-	ListUserEvents(ctx context.Context, username string) ([]storage.Event, error)
+	ListUserEvents(ctx context.Context, user string) ([]storage.Event, error)
+	ListUsersUpcoming(ctx context.Context, user string, until time.Duration) ([]storage.Event, error)
 }
 
-type listener interface {
+type lister interface {
 	ListUpcoming(ctx context.Context, until time.Duration) ([]storage.Event, error)
 }
 
@@ -40,7 +41,7 @@ type cleaner interface {
 type CleanListener interface {
 	connectCloser
 	cleaner
-	listener
+	lister
 }
 
 type App struct {

@@ -12,9 +12,9 @@ build:
 	go build -v -o $(SENDER) -ldflags "$(LDFLAGS)" ./cmd/sender
 
 run: build
+	$(SCHEDULER) --config ./configs/scheduler_config.yaml &
+	$(SENDER) --config ./configs/sender_config.yaml &
 	$(CALENDAR) --config ./configs/calendar_config.yaml
-	#$(SCHEDULER) --config ./configs/scheduler_config.yaml
-	#$(SENDER) --config ./configs/sender_config.yaml
 
 version: build
 	$(CALENDAR_BIN) version
@@ -41,4 +41,18 @@ generate:
 		--grpc-gateway_opt generate_unbound_methods=true \
 		./google/EventService.proto
 
-.PHONY: build run version test lint generate
+up:
+	sudo docker-compose -f ./deployments/docker-compose.yaml up --build
+
+down:
+	sudo docker-compose -f ./deployments/docker-compose.yaml down
+
+integration-tests:
+	set -e ;\
+	sudo docker-compose -f ./deployments/docker-compose.test.yaml up --build -d ;\
+	test_status_code=0 ;\
+	sudo docker-compose -f ./deployments/docker-compose.test.yaml run integration-tests go test -v || test_status_code=$$? ;\
+	sudo docker-compose -f ./deployments/docker-compose.test.yaml down ;\
+	exit $$test_status_code ;\
+
+.PHONY: build run version test lint generate up down integration-tests

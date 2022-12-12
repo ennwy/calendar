@@ -1,0 +1,14 @@
+version: "3.9"
+
+logger:
+  level: "debug"
+  outputPath: "stdout"
+mq:
+  q:
+    name: "events"
+    url: "amqp://guest:guest@localhost:5672/"
+  consumer: ""
+  autoAck: false
+  exclusive: false
+  noLocal: false
+  noWait: false

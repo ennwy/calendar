@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const period = time.Minute
+
 type Storage interface {
 	app.CleanListener
 }
@@ -72,22 +74,24 @@ func New(ctx context.Context, storage Storage, log Logger, opts noti.MQProduce) 
 }
 
 func (s *Scheduler) Start() error {
-	l.Info("[ + ] Scheduler started")
+	l.Warn("Scheduler started")
 	if err := s.storage.Connect(s.ctx); err != nil {
 		return err
 	}
 
 	go func() {
-		for t := time.NewTicker(24 * time.Hour); ; {
+		t := time.NewTicker(24 * time.Hour)
+
+		for {
 			select {
+
+			case <-s.ctx.Done():
+				return
 
 			case <-t.C:
 				if err := s.storage.Clean(s.ctx, 365*storage.Day); err != nil {
 					l.Error("start: clean:", err)
 				}
-
-			case <-s.ctx.Done():
-				return
 			}
 		}
 	}()
@@ -97,7 +101,7 @@ func (s *Scheduler) Start() error {
 }
 
 func (s *Scheduler) Stop() (err error) {
-	l.Info("[ + ] Scheduler Stopped")
+	l.Warn("Scheduler Stopped")
 
 	if err = s.ch.Close(); err != nil {
 		return fmt.Errorf("scheduler stop: chan close: %w", err)
@@ -107,17 +111,15 @@ func (s *Scheduler) Stop() (err error) {
 }
 
 func (s *Scheduler) publish() {
-	//ctx, cancel := context.WithTimeout(s.ctx, 30*time.Second)
-	//defer cancel()
-
 	var events []storage.Event
 	var err error
 
-	for t := time.NewTicker(time.Minute); ; {
-
+	for t := time.NewTicker(period); ; {
 		select {
 		case <-t.C:
-			if events, err = s.storage.ListUpcoming(s.ctx, time.Minute); err != nil {
+			events, err = s.storage.ListUpcoming(s.ctx, period)
+
+			if err != nil {
 				l.Error("scheduler: publish:", err)
 				l.Error("events: ", events)
 				continue
@@ -135,8 +137,7 @@ func (s *Scheduler) publish() {
 }
 
 func (s *Scheduler) publishEvent(events []storage.Event) (err error) {
-	l.Info("publish event: events", len(events))
-	l.Info("\n [ + ] New  events to notification!")
+	l.Info("publish event: events found:", len(events))
 	var bEvent []byte
 
 	for i, event := range events {
@@ -159,7 +160,7 @@ func (s *Scheduler) publishEvent(events []storage.Event) (err error) {
 		)
 
 		if err != nil {
-			l.Error("[ + ] ERR publishing: ", err)
+			l.Error("ERR publishing:", err)
 		}
 	}
 

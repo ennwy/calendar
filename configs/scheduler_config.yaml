@@ -1,0 +1,25 @@
+version: "3.9"
+
+logger:
+  level: "debug"
+  outputPath: "stdout"
+
+db:
+  user: "postgres"
+  password: "test"
+  name: "test"
+  host: "localhost"
+  port: "5432"
+
+# MQ configurations
+mq:
+  q:
+    name: "events"
+    url: "amqp://guest:guest@localhost:5672/"
+  publish:
+    mandatory: false
+    immediate: false
+  durable: false
+  autoDelete: false
+  exclusive: false
+  noWait: false

@@ -3,13 +3,12 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
 	"github.com/ennwy/calendar/internal/app"
 	"github.com/ennwy/calendar/internal/logger"
-	sqlstorage "github.com/ennwy/calendar/internal/storage/sql"
+	intergrpc "github.com/ennwy/calendar/internal/server/grpc"
+	s "github.com/ennwy/calendar/internal/storage/sql"
 	"time"
 
-	intergrpc "github.com/ennwy/calendar/internal/server/grpc"
 	"net"
 	"net/http"
 	"os"
@@ -17,31 +16,14 @@ import (
 	"syscall"
 )
 
-var configPath string
-
-func init() {
-	flag.StringVar(&configPath, "config", "/etc/calendar/calendar_config.yaml", "Path to configuration file")
-}
-
 var l app.Logger
 
 func main() {
-	flag.Parse()
-	if flag.Arg(0) == "version" {
-		printVersion()
-		return
-	}
-
-	config, err := NewConfig(configPath)
-	if err != nil {
-		panic(err)
-	}
-
+	config := NewConfig()
 	l = logger.New(config.Logger.Level, config.Logger.OutputPath)
 
-	var storage app.Storage = sqlstorage.New(l)
-
-	calendar := app.New(l, storage)
+	l.Info("[ + ] CONFIG:", config)
+	calendar := app.New(l, s.New(l))
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
@@ -52,21 +34,22 @@ func main() {
 
 	go func() {
 		<-ctx.Done()
-
-		ctx, cancel := context.WithTimeout(ctx, time.Second*3)
+		l.Info("[ + ] stop: ctx canceled")
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 
 		if err := server.Stop(ctx); err != nil {
 			l.Error("failed to stop http server: ", err)
 		}
+		l.Info("[ + ] Calendar stopped")
 	}()
 
 	l.Info("[ + ] calendar is running...")
 
-	err = server.Start(ctx)
+	err := server.Start(ctx)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		l.Error("server error: ", err)
-		cancel()
+		//cancel()
 		os.Exit(1) //nolint:gocritic
 	}
 }

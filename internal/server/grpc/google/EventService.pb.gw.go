@@ -182,11 +182,11 @@ func local_request_Storage_CreateEvent_0(ctx context.Context, marshaler runtime.
 }
 
 var (
-	filter_Storage_ListEvents_0 = &utilities.DoubleArray{Encoding: map[string]int{"Owner": 0, "Name": 1}, Base: []int{1, 1, 1, 0}, Check: []int{0, 1, 2, 3}}
+	filter_Storage_ListEvents_0 = &utilities.DoubleArray{Encoding: map[string]int{"Name": 0}, Base: []int{1, 1, 0}, Check: []int{0, 1, 2}}
 )
 
 func request_Storage_ListEvents_0(ctx context.Context, marshaler runtime.Marshaler, client StorageClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq Event
+	var protoReq User
 	var metadata runtime.ServerMetadata
 
 	var (
@@ -196,14 +196,14 @@ func request_Storage_ListEvents_0(ctx context.Context, marshaler runtime.Marshal
 		_   = err
 	)
 
-	val, ok = pathParams["Owner.Name"]
+	val, ok = pathParams["Name"]
 	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "Owner.Name")
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "Name")
 	}
 
-	err = runtime.PopulateFieldFromPath(&protoReq, "Owner.Name", val)
+	protoReq.Name, err = runtime.String(val)
 	if err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Owner.Name", err)
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Name", err)
 	}
 
 	if err := req.ParseForm(); err != nil {
@@ -219,11 +219,49 @@ func request_Storage_ListEvents_0(ctx context.Context, marshaler runtime.Marshal
 }
 
 func local_request_Storage_ListEvents_0(ctx context.Context, marshaler runtime.Marshaler, server StorageServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq Event
+	var protoReq User
 	var metadata runtime.ServerMetadata
 
 	var (
 		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["Name"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "Name")
+	}
+
+	protoReq.Name, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Name", err)
+	}
+
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_Storage_ListEvents_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	msg, err := server.ListEvents(ctx, &protoReq)
+	return msg, metadata, err
+
+}
+
+var (
+	filter_Storage_ListUpcoming_0 = &utilities.DoubleArray{Encoding: map[string]int{"Owner": 0, "Name": 1, "Until": 2}, Base: []int{1, 1, 1, 2, 0, 0}, Check: []int{0, 1, 2, 1, 3, 4}}
+)
+
+func request_Storage_ListUpcoming_0(ctx context.Context, marshaler runtime.Marshaler, client StorageClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq Upcoming
+	var metadata runtime.ServerMetadata
+
+	var (
+		val string
+		e   int32
 		ok  bool
 		err error
 		_   = err
@@ -239,14 +277,72 @@ func local_request_Storage_ListEvents_0(ctx context.Context, marshaler runtime.M
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Owner.Name", err)
 	}
 
+	val, ok = pathParams["Until"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "Until")
+	}
+
+	e, err = runtime.Enum(val, Upcoming_Period_value)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Until", err)
+	}
+
+	protoReq.Until = Upcoming_Period(e)
+
 	if err := req.ParseForm(); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_Storage_ListEvents_0); err != nil {
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_Storage_ListUpcoming_0); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := server.ListEvents(ctx, &protoReq)
+	msg, err := client.ListUpcoming(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+
+}
+
+func local_request_Storage_ListUpcoming_0(ctx context.Context, marshaler runtime.Marshaler, server StorageServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq Upcoming
+	var metadata runtime.ServerMetadata
+
+	var (
+		val string
+		e   int32
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["Owner.Name"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "Owner.Name")
+	}
+
+	err = runtime.PopulateFieldFromPath(&protoReq, "Owner.Name", val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Owner.Name", err)
+	}
+
+	val, ok = pathParams["Until"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "Until")
+	}
+
+	e, err = runtime.Enum(val, Upcoming_Period_value)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "Until", err)
+	}
+
+	protoReq.Until = Upcoming_Period(e)
+
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_Storage_ListUpcoming_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	msg, err := server.ListUpcoming(ctx, &protoReq)
 	return msg, metadata, err
 
 }
@@ -471,7 +567,7 @@ func local_request_Storage_DeleteEvent_0(ctx context.Context, marshaler runtime.
 
 }
 
-// RegisterStorageHandlerServer registers the http handlers for service storage to "mux".
+// RegisterStorageHandlerServer registers the http handlers for service Storage to "mux".
 // UnaryRPC     :call StorageServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
 // Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterStorageHandlerFromEndpoint instead.
@@ -485,7 +581,7 @@ func RegisterStorageHandlerServer(ctx context.Context, mux *runtime.ServeMux, se
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.storage/CreateEvent", runtime.WithHTTPPathPattern("/create/{Owner.Name}/{Title}/{Start}/{Finish}/{Notify}"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.Storage/CreateEvent", runtime.WithHTTPPathPattern("/create/{Owner.Name}/{Title}/{Start}/{Finish}/{Notify}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -510,7 +606,7 @@ func RegisterStorageHandlerServer(ctx context.Context, mux *runtime.ServeMux, se
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.storage/ListEvents", runtime.WithHTTPPathPattern("/list/{Owner.Name}"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.Storage/ListEvents", runtime.WithHTTPPathPattern("/list/{Name}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -527,6 +623,31 @@ func RegisterStorageHandlerServer(ctx context.Context, mux *runtime.ServeMux, se
 
 	})
 
+	mux.Handle("GET", pattern_Storage_ListUpcoming_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		var err error
+		var annotatedContext context.Context
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.Storage/ListUpcoming", runtime.WithHTTPPathPattern("/list/{Owner.Name}/{Until}"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_Storage_ListUpcoming_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_Storage_ListUpcoming_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
 	mux.Handle("GET", pattern_Storage_UpdateEvent_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
@@ -535,7 +656,7 @@ func RegisterStorageHandlerServer(ctx context.Context, mux *runtime.ServeMux, se
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.storage/UpdateEvent", runtime.WithHTTPPathPattern("/update/{ID}/{Title}/{Start}/{Finish}/{Notify}"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.Storage/UpdateEvent", runtime.WithHTTPPathPattern("/update/{ID}/{Title}/{Start}/{Finish}/{Notify}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -560,7 +681,7 @@ func RegisterStorageHandlerServer(ctx context.Context, mux *runtime.ServeMux, se
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.storage/DeleteEvent", runtime.WithHTTPPathPattern("/delete/{ID}"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/event.Storage/DeleteEvent", runtime.WithHTTPPathPattern("/delete/{ID}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -605,13 +726,13 @@ func RegisterStorageHandlerFromEndpoint(ctx context.Context, mux *runtime.ServeM
 	return RegisterStorageHandler(ctx, mux, conn)
 }
 
-// RegisterStorageHandler registers the http handlers for service storage to "mux".
+// RegisterStorageHandler registers the http handlers for service Storage to "mux".
 // The handlers forward requests to the grpc endpoint over "conn".
 func RegisterStorageHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc.ClientConn) error {
 	return RegisterStorageHandlerClient(ctx, mux, NewStorageClient(conn))
 }
 
-// RegisterStorageHandlerClient registers the http handlers for service storage
+// RegisterStorageHandlerClient registers the http handlers for service Storage
 // to "mux". The handlers forward requests to the grpc endpoint over the given implementation of "StorageClient".
 // Note: the gRPC framework executes interceptors within the gRPC handler. If the passed in "StorageClient"
 // doesn't go through the normal gRPC flow (creating a gRPC client etc.) then it will be up to the passed in
@@ -624,7 +745,7 @@ func RegisterStorageHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.storage/CreateEvent", runtime.WithHTTPPathPattern("/create/{Owner.Name}/{Title}/{Start}/{Finish}/{Notify}"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.Storage/CreateEvent", runtime.WithHTTPPathPattern("/create/{Owner.Name}/{Title}/{Start}/{Finish}/{Notify}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -646,7 +767,7 @@ func RegisterStorageHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.storage/ListEvents", runtime.WithHTTPPathPattern("/list/{Owner.Name}"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.Storage/ListEvents", runtime.WithHTTPPathPattern("/list/{Name}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -662,13 +783,35 @@ func RegisterStorageHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 
 	})
 
+	mux.Handle("GET", pattern_Storage_ListUpcoming_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		var err error
+		var annotatedContext context.Context
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.Storage/ListUpcoming", runtime.WithHTTPPathPattern("/list/{Owner.Name}/{Until}"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_Storage_ListUpcoming_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_Storage_ListUpcoming_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
 	mux.Handle("GET", pattern_Storage_UpdateEvent_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.storage/UpdateEvent", runtime.WithHTTPPathPattern("/update/{ID}/{Title}/{Start}/{Finish}/{Notify}"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.Storage/UpdateEvent", runtime.WithHTTPPathPattern("/update/{ID}/{Title}/{Start}/{Finish}/{Notify}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -690,7 +833,7 @@ func RegisterStorageHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.storage/DeleteEvent", runtime.WithHTTPPathPattern("/delete/{ID}"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/event.Storage/DeleteEvent", runtime.WithHTTPPathPattern("/delete/{ID}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -712,7 +855,9 @@ func RegisterStorageHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 var (
 	pattern_Storage_CreateEvent_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 1, 0, 4, 1, 5, 1, 1, 0, 4, 1, 5, 2, 1, 0, 4, 1, 5, 3, 1, 0, 4, 1, 5, 4, 1, 0, 4, 1, 5, 5}, []string{"create", "Owner.Name", "Title", "Start", "Finish", "Notify"}, ""))
 
-	pattern_Storage_ListEvents_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 1, 0, 4, 1, 5, 1}, []string{"list", "Owner.Name"}, ""))
+	pattern_Storage_ListEvents_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 1, 0, 4, 1, 5, 1}, []string{"list", "Name"}, ""))
+
+	pattern_Storage_ListUpcoming_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 1, 0, 4, 1, 5, 1, 1, 0, 4, 1, 5, 2}, []string{"list", "Owner.Name", "Until"}, ""))
 
 	pattern_Storage_UpdateEvent_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 1, 0, 4, 1, 5, 1, 1, 0, 4, 1, 5, 2, 1, 0, 4, 1, 5, 3, 1, 0, 4, 1, 5, 4, 1, 0, 4, 1, 5, 5}, []string{"update", "ID", "Title", "Start", "Finish", "Notify"}, ""))
 
@@ -723,6 +868,8 @@ var (
 	forward_Storage_CreateEvent_0 = runtime.ForwardResponseMessage
 
 	forward_Storage_ListEvents_0 = runtime.ForwardResponseMessage
+
+	forward_Storage_ListUpcoming_0 = runtime.ForwardResponseMessage
 
 	forward_Storage_UpdateEvent_0 = runtime.ForwardResponseMessage
 

@@ -6,10 +6,20 @@ import (
 	api "github.com/ennwy/calendar/internal/server"
 	pb "github.com/ennwy/calendar/internal/server/grpc/google"
 	"github.com/ennwy/calendar/internal/storage"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"time"
 )
+
+const (
+	day   = time.Hour * 24
+	week  = 7 * day
+	month = 30 * day
+)
+
+// pb.StorageServer embedded in GRPCServer so always implemented, be careful
+var _ pb.StorageServer = (*GRPCServer)(nil)
 
 func (s *GRPCServer) CreateEvent(ctx context.Context, e *pb.Event) (*emptypb.Empty, error) {
 	event, err := getEvent(e)
@@ -25,33 +35,32 @@ func (s *GRPCServer) CreateEvent(ctx context.Context, e *pb.Event) (*emptypb.Emp
 	return nil, err
 }
 
-func (s *GRPCServer) ListEvents(ctx context.Context, event *pb.Event) (*pb.Events, error) {
-	events, err := s.App.ListUserEvents(ctx, event.Owner.Name)
+func (s *GRPCServer) ListEvents(ctx context.Context, u *pb.User) (*pb.Events, error) {
+	events, err := s.App.ListUserEvents(ctx, u.Name)
 	if err != nil {
 		l.Error(err)
 		return nil, err
 	}
 
-	result := &pb.Events{
-		Events: make([]*pb.Event, 0, len(events)),
-	}
-	l.Info("router: list events: events len:", len(events))
-	for _, e := range events {
-		pbEvent := &pb.Event{
-			ID: e.ID,
-			Owner: &pb.User{
-				ID:   e.Owner.ID,
-				Name: e.Owner.Name,
-			},
-			Title:  e.Title,
-			Start:  timestamppb.New(e.Start),
-			Finish: timestamppb.New(e.Finish),
-			Notify: e.Notify,
-		}
-		result.Events = append(result.Events, pbEvent)
+	pbEvents := getPBEvents(events)
+
+	return pbEvents, nil
+}
+
+func (s *GRPCServer) ListUpcoming(ctx context.Context, u *pb.Upcoming) (*pb.Events, error) {
+	events, err := s.App.ListUsersUpcoming(
+		ctx,
+		u.GetOwner().GetName(),
+		getUntil(u.GetUntil().Number()),
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("list user's upcoming events: %w", err)
 	}
 
-	return result, nil
+	pbEvents := getPBEvents(events)
+
+	return pbEvents, err
 }
 
 func (s *GRPCServer) UpdateEvent(ctx context.Context, e *pb.Event) (*emptypb.Empty, error) {
@@ -77,32 +86,70 @@ func (s *GRPCServer) DeleteEvent(ctx context.Context, e *pb.Event) (*emptypb.Emp
 }
 
 // SUB FUNCTIONS
-
 func absNotify(n int32) int32 {
 	if n > 0 {
 		return n
 	}
-
 	return -n
 }
 
 func getEvent(e *pb.Event) (*storage.Event, error) {
-	start := e.GetStart().AsTime().In(time.UTC)
-	finish := e.GetFinish().AsTime().In(time.UTC)
+	start := e.GetStart().AsTime().Round(time.Minute)
+	finish := time.Unix(e.GetFinish().GetSeconds(), 0).Round(time.Minute)
 
 	if !start.Before(finish) {
 		return nil, api.ErrTime
 	}
 
 	return &storage.Event{
-		ID: e.GetID(),
-		Owner: storage.User{
-			ID:   e.GetOwner().GetID(),
-			Name: e.GetOwner().GetName(),
-		},
+		ID:     e.GetID(),
 		Title:  e.GetTitle(),
 		Start:  start,
 		Finish: finish,
 		Notify: absNotify(e.GetNotify()),
+		Owner: storage.User{
+			ID:   e.GetOwner().GetID(),
+			Name: e.GetOwner().GetName(),
+		},
 	}, nil
+}
+
+func getPBEvents(events []storage.Event) *pb.Events {
+	result := &pb.Events{
+		Events: make([]*pb.Event, 0, len(events)),
+	}
+
+	for _, e := range events {
+		pbEvent := getPBEvent(e)
+		result.Events = append(result.Events, pbEvent)
+	}
+
+	return result
+}
+
+func getPBEvent(event storage.Event) *pb.Event {
+	return &pb.Event{
+		ID:     event.ID,
+		Title:  event.Title,
+		Start:  timestamppb.New(event.Start),
+		Finish: timestamppb.New(event.Finish),
+		Notify: event.Notify,
+		Owner: &pb.User{
+			ID:   event.Owner.ID,
+			Name: event.Owner.Name,
+		},
+	}
+}
+
+func getUntil(n protoreflect.EnumNumber) time.Duration {
+	switch int32(n) {
+	case 0:
+		return day
+	case 1:
+		return week
+	case 2:
+		return month
+	default:
+		return day
+	}
 }
