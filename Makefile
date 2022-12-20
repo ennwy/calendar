@@ -26,7 +26,7 @@ install-linter:
 	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.46.2
 
 lint: install-linter
-	golangci-lint run ./...
+	sudo golangci-lint run ./...
 
 generate:
 	mkdir -p ./google/api
