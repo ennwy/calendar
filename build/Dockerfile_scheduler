@@ -1,5 +1,7 @@
 FROM golang:1.19 as build
 
+ARG cmd=cmd
+
 ENV BIN_FILE /opt/calendar/scheduler-app
 ENV CODE_DIR /go/src/
 
@@ -14,7 +16,7 @@ ARG LDFLAGS
 
 RUN CGO_ENABLED=0 go build \
         -ldflags "$LDFLAGS" \
-        -o ${BIN_FILE} ./cmd/scheduler/*
+        -o ${BIN_FILE} ./${cmd}/scheduler/*
 
 FROM alpine:3.9
 

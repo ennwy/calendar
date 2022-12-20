@@ -3,7 +3,6 @@ version: '3.9'
 services:
   integration-tests:
     container_name: "integration-tests"
-#    image: 1.19.3-alpine3.17
     build:
       context: ..
       dockerfile: ./build/Dockerfile_tests
@@ -12,6 +11,8 @@ services:
       - scheduler
       - sender
     environment:
+    - API_HOST=${API_HOST}
+
     - LOG_LEVEL=${LOG_LEVEL}
     - LOG_OUTPUT_PATH=${LOG_OUTPUT_PATH}
 
@@ -20,9 +21,6 @@ services:
 
     - HTTP_HOST=${HTTP_HOST}
     - HTTP_PORT=${HTTP_PORT}
-
-    - TEST_HOST=calendar
-    - TEST_PORT=${HTTP_PORT}
 
     - STORAGE=${STORAGE}
 
@@ -47,10 +45,14 @@ services:
     build:
       context: ..
       dockerfile: ./build/Dockerfile_calendar
+      args:
+        - cmd=cmd_tests
     restart: on-failure
     depends_on:
       - migrate
     environment:
+      - SERVER_TYPE=${SERVER_TYPE}
+
       - LOG_LEVEL=${LOG_LEVEL}
       - LOG_OUTPUT_PATH=${LOG_OUTPUT_PATH}
 
@@ -68,7 +70,9 @@ services:
       - DATABASE_HOST=${DB_HOST}
       - DATABASE_PORT=${DB_PORT}
     ports:
-      - "8000:8000"
+      - "${GRPC_PORT}:${GRPC_PORT}"
+      - "${HTTP_PORT}:${HTTP_PORT}"
+
 
 
   scheduler:
@@ -76,6 +80,8 @@ services:
     build:
       context: ..
       dockerfile: ./build/Dockerfile_scheduler
+      args:
+        - cmd=cmd_tests
     restart: on-failure
     depends_on:
       - migrate
@@ -105,6 +111,8 @@ services:
     build:
       context: ..
       dockerfile: ./build/Dockerfile_sender
+      args:
+        - cmd=cmd_tests
     restart: on-failure
     depends_on:
       - rabbitmq
@@ -124,7 +132,7 @@ services:
     container_name: "rabbitmq"
     restart: on-failure
     image: rabbitmq:3.11.3-management-alpine
-    hostname: ${MQ_HOSTNAME}
+    hostname: ${API_HOST}
     expose:
       - "15672:15672"
       - "5672:5672"
@@ -157,5 +165,3 @@ services:
     ]
     depends_on:
       - db
-
-

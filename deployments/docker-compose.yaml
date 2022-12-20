@@ -11,6 +11,8 @@ services:
     depends_on:
       - migrate
     environment:
+      - SERVER_TYPE=${SERVER_TYPE}
+
       - LOG_LEVEL=${LOG_LEVEL}
       - LOG_OUTPUT_PATH=${LOG_OUTPUT_PATH}
 
@@ -28,7 +30,8 @@ services:
       - DATABASE_HOST=${DB_HOST}
       - DATABASE_PORT=${DB_PORT}
     ports:
-      - "8000:8000"
+      - "${GRPC_PORT}:${GRPC_PORT}"
+      - "${HTTP_PORT}:${HTTP_PORT}"
 
 
   scheduler:
@@ -87,7 +90,7 @@ services:
     volumes:
       - ../.data/rabbitmq/data:/var/lib/rabbitmq/mnesia/rabbit@my-rabbit
       - ../.data/rabbitmq/logs:/var/log/rabbitmq/log
-    hostname: ${MQ_HOSTNAME}
+    hostname: ${API_HOST}
     expose:
       - "15672:15672"
       - "5672:5672"
@@ -125,6 +128,3 @@ services:
     ]
     depends_on:
       - db
-
-
-
