@@ -27,6 +27,7 @@ var l api.Logger
 func NewServer(ctx context.Context, log api.Logger, App api.Application, addr string) *Server {
 	l = log
 
+	l.Info("http server addr:", addr)
 	s := &Server{
 		Ctx: ctx,
 		App: App,

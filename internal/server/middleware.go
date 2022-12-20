@@ -3,7 +3,7 @@ package server
 import "net/http"
 
 func LogMiddleware(next http.Handler, l Logger) http.Handler {
-	l.Info("[ + ] Middleware was set up")
+	l.Info("[ + ] Middleware has been set up")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
