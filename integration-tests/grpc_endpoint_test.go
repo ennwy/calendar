@@ -3,6 +3,7 @@ package integration_tests
 import (
 	j "encoding/json"
 	"fmt"
+	"github.com/ennwy/calendar/internal/storage"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
@@ -14,7 +15,7 @@ const day = 24 * time.Hour
 
 func TestCalendar(t *testing.T) {
 	var id int64 = 0
-	user := User{
+	user := storage.User{
 		Name: "newUser",
 		ID:   1,
 	}
@@ -27,7 +28,7 @@ func TestCalendar(t *testing.T) {
 		require.NoError(t, err)
 
 		id++
-		event1 := Event{
+		event1 := storage.Event{
 			ID:     id,
 			Owner:  user,
 			Title:  "myNewTitle",
@@ -38,7 +39,7 @@ func TestCalendar(t *testing.T) {
 		createEvent(t, event1)
 
 		id++
-		event2 := Event{
+		event2 := storage.Event{
 			ID:     id,
 			Owner:  user,
 			Title:  "some text",
@@ -55,7 +56,7 @@ func TestCalendar(t *testing.T) {
 	})
 
 	t.Run("update_event", func(t *testing.T) {
-		updatedEvent := Event{
+		updatedEvent := storage.Event{
 			ID:     id, // updating last created event
 			Owner:  user,
 			Title:  "some another text",
@@ -64,7 +65,7 @@ func TestCalendar(t *testing.T) {
 			Notify: 180,
 		}
 
-		resp, err := http.Get(addr + fmt.Sprintf(
+		resp, err := http.Get(addrGRPC + fmt.Sprintf(
 			"/update/%d/%s/%q/%q/%d",
 			updatedEvent.ID,
 			updatedEvent.Title,
@@ -80,11 +81,11 @@ func TestCalendar(t *testing.T) {
 	})
 
 	t.Run("delete_event", func(t *testing.T) {
-		updatedEvent := Event{
+		updatedEvent := storage.Event{
 			ID: 1,
 		}
 
-		resp, err := http.Get(addr + fmt.Sprintf(
+		resp, err := http.Get(addrGRPC + fmt.Sprintf(
 			"/delete/%d",
 			updatedEvent.ID,
 		))
@@ -95,7 +96,7 @@ func TestCalendar(t *testing.T) {
 		_, found := events[updatedEvent.ID]
 		require.False(t, false, found)
 
-		resp, err = http.Get(addr + fmt.Sprintf(
+		resp, err = http.Get(addrGRPC + fmt.Sprintf(
 			"/delete/%d",
 			id,
 		))
@@ -105,10 +106,10 @@ func TestCalendar(t *testing.T) {
 		listUserEvents(t, user.Name, 0)
 	})
 
-	user = User{ID: 2, Name: "SecondUser"}
+	user = storage.User{ID: 2, Name: "SecondUser"}
 	t.Run("list_upcoming_day", func(t *testing.T) {
 		id++
-		eDay := Event{
+		eDay := storage.Event{
 			ID:     id,
 			Owner:  user,
 			Title:  "string",
@@ -140,7 +141,7 @@ func TestCalendar(t *testing.T) {
 		eYear.Start = processTime(time.Now().Add(365 * day))
 		createEvent(t, eYear)
 
-		resp, err := http.Get(addr + fmt.Sprintf(
+		resp, err := http.Get(addrGRPC + fmt.Sprintf(
 			"/list/%s/%d",
 			eDay.Owner.Name,
 			0,
@@ -151,7 +152,7 @@ func TestCalendar(t *testing.T) {
 		_, found := events[eDay.ID]
 		require.True(t, found)
 
-		resp, err = http.Get(addr + fmt.Sprintf(
+		resp, err = http.Get(addrGRPC + fmt.Sprintf(
 			"/list/%s/%d",
 			eDay.Owner.Name,
 			1,
@@ -164,7 +165,7 @@ func TestCalendar(t *testing.T) {
 		_, found = events[eWeek.ID]
 		require.True(t, found)
 
-		resp, err = http.Get(addr + fmt.Sprintf(
+		resp, err = http.Get(addrGRPC + fmt.Sprintf(
 			"/list/%s/%d",
 			eDay.Owner.Name,
 			2,
@@ -179,16 +180,27 @@ func TestCalendar(t *testing.T) {
 		_, found = events[eMonth.ID]
 		require.True(t, found)
 
-		resp, err = http.Get(addr + fmt.Sprintf(
+		expected := grpcError{
+			Code:    3,
+			Message: "type mismatch, parameter: Until, error: 8 is not valid",
+			Details: []string{},
+		}
+
+		current := grpcError{}
+
+		resp, err = http.Get(addrGRPC + fmt.Sprintf(
 			"/list/%s/%d",
 			eDay.Owner.Name,
-			8, // 0 - day, 1 - week, 2 - month, day by default
+			8, // 0 - day, 1 - week, 2 - month, other should return error
 		))
 		require.NoError(t, err)
-		events = getEvents(t, resp)
-		require.Equal(t, 1, len(events))
-		_, found = events[eDay.ID]
-		require.True(t, found)
+		json, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.Nil(t, resp.Body.Close())
+
+		err = j.Unmarshal(json, &current)
+		require.NoError(t, err)
+		require.Equal(t, expected, current)
 	})
 }
 
@@ -197,35 +209,10 @@ func processTime(t time.Time) time.Time {
 	return t.Round(time.Minute).UTC()
 }
 
-func listUserEvents(t *testing.T, username string, l int) Events {
-	resp, err := http.Get(addr + "/list/" + username)
+func listUserEvents(t *testing.T, username string, l int) EventMap {
+	resp, err := http.Get(addrGRPC + "/list/" + username)
 	require.NoError(t, err)
 	events := getEvents(t, resp)
 	require.Len(t, events, l)
 	return events
-}
-
-func getEvents(t *testing.T, resp *http.Response) Events {
-	json, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
-	require.Nil(t, resp.Body.Close())
-
-	eventQ := EventsString{}
-	err = j.Unmarshal(json, &eventQ)
-	require.NoError(t, err)
-
-	return eventQ.getEvents()
-}
-
-func createEvent(t *testing.T, e Event) {
-	resp, err := http.Get(addr + fmt.Sprintf(
-		"/create/%s/%s/%q/%q/%d",
-		e.Owner.Name,
-		e.Title,
-		e.Start.Format(TimeLayout),
-		e.Finish.Format(TimeLayout),
-		e.Notify,
-	))
-	require.NoError(t, err)
-	require.NoError(t, resp.Body.Close())
 }
