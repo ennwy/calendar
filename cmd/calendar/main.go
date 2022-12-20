@@ -6,6 +6,8 @@ import (
 	"github.com/ennwy/calendar/internal/app"
 	"github.com/ennwy/calendar/internal/logger"
 	intergrpc "github.com/ennwy/calendar/internal/server/grpc"
+	interhttp "github.com/ennwy/calendar/internal/server/http"
+	//pb "github.com/ennwy/calendar/internal/server/grpc/google"
 	s "github.com/ennwy/calendar/internal/storage/sql"
 	"time"
 
@@ -29,8 +31,18 @@ func main() {
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
-	addr := net.JoinHostPort(config.HTTP.Host, config.HTTP.Port)
-	server := intergrpc.NewServer(ctx, l, calendar, addr)
+	var server app.Server
+	switch config.Server {
+	case "grpc":
+		addr := net.JoinHostPort(config.GRPC.Host, config.GRPC.Port)
+		server = intergrpc.NewServer(ctx, l, calendar, addr)
+	case "http":
+		addr := net.JoinHostPort(config.HTTP.Host, config.HTTP.Port)
+		server = interhttp.NewServer(ctx, l, calendar, addr)
+	default:
+		l.Error("SERVER_TYPE var is not correct. http or grpc expected")
+		return
+	}
 
 	go func() {
 		<-ctx.Done()
@@ -41,6 +53,7 @@ func main() {
 		if err := server.Stop(ctx); err != nil {
 			l.Error("failed to stop http server: ", err)
 		}
+
 		l.Info("[ + ] Calendar stopped")
 	}()
 

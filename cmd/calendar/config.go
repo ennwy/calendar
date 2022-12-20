@@ -10,6 +10,7 @@ type Config struct {
 	HTTP    HTTPConfig     `yaml:"http"`
 	GRPC    GRPCConfig     `yaml:"grpc"`
 	Storage string         `yaml:"storage"`
+	Server  string         `yaml:"server"`
 }
 
 type HTTPConfig struct {
@@ -33,19 +34,8 @@ func (g *GRPCConfig) Set() {
 }
 
 func NewConfig() *Config {
-	//configData, err := os.ReadFile(path)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//config := &Config{}
-	//err = yaml.Unmarshal(configData, config)
-	//
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	config := &Config{}
+	config.Server = os.Getenv("SERVER_TYPE")
 	config.Logger.Set()
 	config.HTTP.Set()
 	config.GRPC.Set()
