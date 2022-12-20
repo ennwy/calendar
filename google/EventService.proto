@@ -45,6 +45,7 @@ service Storage {
             get: "/create/{Owner.Name}/{Title}/{Start}/{Finish}/{Notify}"
         };
     }
+
     rpc ListEvents(User) returns (Events) {
         option (google.api.http) = {
             get: "/list/{Name}"

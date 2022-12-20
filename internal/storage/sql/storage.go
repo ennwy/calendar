@@ -135,7 +135,7 @@ func (s *Storage) DeleteEvent(ctx context.Context, eventID int64) error {
 	return nil
 }
 
-func (s *Storage) ListUserEvents(ctx context.Context, user string) ([]storage.Event, error) {
+func (s *Storage) ListUserEvents(ctx context.Context, user string) (*storage.Events, error) {
 	rows, err := s.db.Query(ctx, qUserEvents, user)
 	if err != nil {
 		return nil, fmt.Errorf("list events: %w", err)
@@ -144,7 +144,7 @@ func (s *Storage) ListUserEvents(ctx context.Context, user string) ([]storage.Ev
 	return getEvents(rows), nil
 }
 
-func (s *Storage) ListUpcoming(ctx context.Context, until time.Duration) ([]storage.Event, error) {
+func (s *Storage) ListUpcoming(ctx context.Context, until time.Duration) (*storage.Events, error) {
 	if until < 0 {
 		until = -until
 	}
@@ -167,7 +167,7 @@ func (s *Storage) ListUpcoming(ctx context.Context, until time.Duration) ([]stor
 	return getEvents(rows), err
 }
 
-func (s *Storage) ListUsersUpcoming(ctx context.Context, user string, until time.Duration) ([]storage.Event, error) {
+func (s *Storage) ListUsersUpcoming(ctx context.Context, user string, until time.Duration) (*storage.Events, error) {
 	if until < 0 {
 		until = -until
 	}
@@ -209,8 +209,11 @@ func (s *Storage) Clean(ctx context.Context, ago time.Duration) error {
 	return nil
 }
 
-func getEvents(rows pgx.Rows) []storage.Event {
-	eventList := make([]storage.Event, 0, 1)
+func getEvents(rows pgx.Rows) *storage.Events {
+	events := storage.Events{
+		Events: make([]storage.Event, 0, 1),
+	}
+
 	var notifyTime time.Time
 	var e storage.Event
 
@@ -230,9 +233,9 @@ func getEvents(rows pgx.Rows) []storage.Event {
 
 		e.SetNotifyByTime(notifyTime)
 		l.Info("Notify from base:", e.Notify)
-		eventList = append(eventList, e)
+		events.Events = append(events.Events, e)
 		e.Reset()
 	}
 
-	return eventList
+	return &events
 }

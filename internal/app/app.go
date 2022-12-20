@@ -16,6 +16,11 @@ type Logger interface {
 
 // Database permissions configurations below
 
+type Server interface {
+	Start(context.Context) error
+	Stop(context.Context) error
+}
+
 type connectCloser interface {
 	Connect(context.Context) error
 	Close(context.Context) error
@@ -26,12 +31,12 @@ type Storage interface {
 	CreateEvent(ctx context.Context, event *storage.Event) error
 	UpdateEvent(ctx context.Context, event *storage.Event) error
 	DeleteEvent(ctx context.Context, eventID int64) error
-	ListUserEvents(ctx context.Context, user string) ([]storage.Event, error)
-	ListUsersUpcoming(ctx context.Context, user string, until time.Duration) ([]storage.Event, error)
+	ListUserEvents(ctx context.Context, user string) (*storage.Events, error)
+	ListUsersUpcoming(ctx context.Context, user string, until time.Duration) (*storage.Events, error)
 }
 
 type lister interface {
-	ListUpcoming(ctx context.Context, until time.Duration) ([]storage.Event, error)
+	ListUpcoming(ctx context.Context, until time.Duration) (*storage.Events, error)
 }
 
 type cleaner interface {
@@ -68,7 +73,7 @@ func (a *App) CreateEvent(ctx context.Context, e *storage.Event) error {
 	return a.Storage.CreateEvent(ctx, e)
 }
 
-func (a *App) ListUserEvents(ctx context.Context, username string) ([]storage.Event, error) {
+func (a *App) ListUserEvents(ctx context.Context, username string) (*storage.Events, error) {
 	return a.Storage.ListUserEvents(ctx, username)
 }
 

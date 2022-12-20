@@ -111,7 +111,7 @@ func (s *Scheduler) Stop() (err error) {
 }
 
 func (s *Scheduler) publish() {
-	var events []storage.Event
+	var events *storage.Events
 	var err error
 
 	for t := time.NewTicker(period); ; {
@@ -121,7 +121,7 @@ func (s *Scheduler) publish() {
 
 			if err != nil {
 				l.Error("scheduler: publish:", err)
-				l.Error("events: ", events)
+				l.Error("events: ", events.Events)
 				continue
 			}
 
@@ -136,11 +136,11 @@ func (s *Scheduler) publish() {
 	}
 }
 
-func (s *Scheduler) publishEvent(events []storage.Event) (err error) {
-	l.Info("publish event: events found:", len(events))
+func (s *Scheduler) publishEvent(events *storage.Events) (err error) {
+	l.Info("publish event: events found:", len(events.Events))
 	var bEvent []byte
 
-	for i, event := range events {
+	for i, event := range events.Events {
 		l.Info("[", i, "] publishing event:", event)
 
 		if bEvent, err = event.Marshall(); err != nil {

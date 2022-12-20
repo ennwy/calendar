@@ -15,11 +15,11 @@ type User struct {
 }
 
 type Event struct {
-	Start  time.Time `yaml:"start"`
-	Finish time.Time `yaml:"finish"`
-	Owner  User      `yaml:"owner"`
-	Title  string    `yaml:"title"`
-	ID     int64     `yaml:"id"`
+	Start  time.Time `json:"start"`
+	Finish time.Time `json:"finish"`
+	Owner  User      `json:"owner"`
+	Title  string    `json:"title"`
+	ID     int64     `json:"id"`
 	/*
 		Notify: Number of minutes you need to notify before event Start.
 		Value always negative.
@@ -47,4 +47,8 @@ func (e *Event) Marshall() ([]byte, error) {
 
 func (e *Event) Unmarshall(EventYaml []byte) error {
 	return yaml.Unmarshal(EventYaml, e)
+}
+
+type Events struct {
+	Events []Event `json:"Events"`
 }
