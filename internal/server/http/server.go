@@ -9,18 +9,18 @@ import (
 	"github.com/ennwy/calendar/internal/app"
 )
 
-type Server struct {
-	Ctx context.Context
-	S   *http.Server
-	App app.Storage
-}
-
 const (
 	CreateEventPath = "/create"
 	UpdateEventPath = "/update"
 	DeleteEventPath = "/delete"
 	ListEventsPath  = "/list"
 )
+
+type Server struct {
+	Ctx context.Context
+	S   *http.Server
+	App app.Storage
+}
 
 var l api.Logger
 

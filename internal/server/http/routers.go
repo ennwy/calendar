@@ -20,7 +20,7 @@ const (
 	argUntil  = "until"
 )
 
-type EventString struct {
+type EventParse struct {
 	OwnerName string
 	Title     string
 	Start     string
@@ -29,7 +29,7 @@ type EventString struct {
 }
 
 func (s *Server) Create(w http.ResponseWriter, r *http.Request) {
-	eventString := &EventString{
+	eventString := &EventParse{
 		OwnerName: r.FormValue(argOwner),
 		Title:     r.FormValue(argTitle),
 		Start:     r.FormValue(argStart),
@@ -71,11 +71,12 @@ func (s *Server) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) Update(w http.ResponseWriter, r *http.Request) {
-	eventString := &EventString{
+	eventString := &EventParse{
 		OwnerName: r.FormValue(argOwner),
 		Title:     r.FormValue(argTitle),
 		Start:     r.FormValue(argStart),
 		Finish:    r.FormValue(argFinish),
+		Notify:    r.FormValue(argNotify),
 	}
 
 	event, err := eventString.convertToEvent()
@@ -108,7 +109,7 @@ func (s *Server) Delete(w http.ResponseWriter, r *http.Request) {
 		respondAndLog(w, err)
 	}
 }
-func (e *EventString) convertToEvent() (*storage.Event, error) {
+func (e *EventParse) convertToEvent() (*storage.Event, error) {
 	startTime, err := time.Parse(api.TimeLayout, e.Start)
 	if err != nil {
 		return nil, fmt.Errorf("parsing start time: %w", err)
@@ -137,7 +138,7 @@ func (e *EventString) convertToEvent() (*storage.Event, error) {
 func printEvents(w http.ResponseWriter, events *storage.Events) {
 	w.Header().Set("Content-Type", "application/json")
 
-	b, err := json.Marshal(events)
+	b, err := json.Marshal(ToEvents(events))
 	if err != nil {
 		respondAndLog(w, err)
 		return
@@ -149,6 +150,7 @@ func printEvents(w http.ResponseWriter, events *storage.Events) {
 }
 
 func respondAndLog(w http.ResponseWriter, err error) {
+	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusUnprocessableEntity)
 	l.Error(err)
 }
