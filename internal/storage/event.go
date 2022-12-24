@@ -24,7 +24,7 @@ type Event struct {
 		Notify: Number of minutes you need to notify before event Start.
 		Value always negative.
 	*/
-	Notify int32 `yaml:"notify"`
+	Notify int32 `json:"notify"`
 }
 
 func (e *Event) GetNotifyTime() time.Time {
