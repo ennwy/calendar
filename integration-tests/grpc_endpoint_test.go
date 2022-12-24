@@ -6,19 +6,17 @@ import (
 	"github.com/ennwy/calendar/internal/storage"
 	"github.com/stretchr/testify/require"
 	"io"
+	"net"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 )
 
-const day = 24 * time.Hour
+var addrGRPC = "http://" + net.JoinHostPort(os.Getenv("API_HOST"), os.Getenv("GRPC_PORT"))
 
-func TestCalendar(t *testing.T) {
-	var id int64 = 0
-	user := storage.User{
-		Name: "newUser",
-		ID:   1,
-	}
+func TestGRPCEndpoint(t *testing.T) {
+	user := createUser("newUserGRPC")
 
 	t.Run("create_event", func(t *testing.T) {
 		s, err := time.Parse(TimeLayout, "2022-01-02T15:04:00Z")
@@ -27,37 +25,34 @@ func TestCalendar(t *testing.T) {
 		f, err := time.Parse(TimeLayout, "2022-02-02T15:04:00Z")
 		require.NoError(t, err)
 
-		id++
 		event1 := storage.Event{
-			ID:     id,
 			Owner:  user,
 			Title:  "myNewTitle",
 			Start:  processTime(s),
 			Finish: processTime(f),
 			Notify: 120,
 		}
-		createEvent(t, event1)
+		createEventGRPC(t, &event1)
 
-		id++
 		event2 := storage.Event{
-			ID:     id,
 			Owner:  user,
 			Title:  "some text",
 			Start:  processTime(time.Now().Add(-5 * time.Hour)), // Start must be before the
 			Finish: processTime(time.Now()),
 			Notify: 150,
 		}
-		createEvent(t, event2)
+		createEventGRPC(t, &event2)
 
-		e := listUserEvents(t, user.Name, 2)
-		require.Equal(t, 2, len(e))
-		require.Equal(t, event1, e[event1.ID])
-		require.Equal(t, event2, e[event2.ID])
+		events, err := checkUserEventsGRPC(user.Name)
+		require.NoError(t, err)
+		require.Len(t, events, 2)
+		require.Equal(t, event1, events[event1.ID])
+		require.Equal(t, event2, events[event2.ID])
 	})
 
 	t.Run("update_event", func(t *testing.T) {
-		updatedEvent := storage.Event{
-			ID:     id, // updating last created event
+		eventToUpdate := storage.Event{
+			ID:     eventID, // updating last created event
 			Owner:  user,
 			Title:  "some another text",
 			Start:  processTime(time.Now().Add(-10 * time.Hour)),
@@ -67,22 +62,24 @@ func TestCalendar(t *testing.T) {
 
 		resp, err := http.Get(addrGRPC + fmt.Sprintf(
 			"/update/%d/%s/%q/%q/%d",
-			updatedEvent.ID,
-			updatedEvent.Title,
-			updatedEvent.Start.Format(TimeLayout), // Start must be before the
-			updatedEvent.Finish.Format(TimeLayout),
-			updatedEvent.Notify,
+			eventToUpdate.ID,
+			eventToUpdate.Title,
+			eventToUpdate.Start.Format(TimeLayout), // Start must be before the
+			eventToUpdate.Finish.Format(TimeLayout),
+			eventToUpdate.Notify,
 		))
 		require.NoError(t, err)
 		require.NoError(t, resp.Body.Close())
 
-		events := listUserEvents(t, user.Name, 2)
-		require.Equal(t, updatedEvent, events[updatedEvent.ID])
+		events, err := checkUserEventsGRPC(user.Name)
+		require.NoError(t, err)
+		require.Len(t, events, 2)
+		require.Equal(t, eventToUpdate, events[eventToUpdate.ID])
 	})
 
 	t.Run("delete_event", func(t *testing.T) {
 		updatedEvent := storage.Event{
-			ID: 1,
+			ID: eventID,
 		}
 
 		resp, err := http.Get(addrGRPC + fmt.Sprintf(
@@ -92,25 +89,29 @@ func TestCalendar(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, resp.Body.Close())
 
-		events := listUserEvents(t, user.Name, 1)
+		events, err := checkUserEventsGRPC(user.Name)
+		require.NoError(t, err)
+		require.Len(t, events, 1)
+
 		_, found := events[updatedEvent.ID]
-		require.False(t, false, found)
+		require.False(t, found)
 
 		resp, err = http.Get(addrGRPC + fmt.Sprintf(
 			"/delete/%d",
-			id,
+			eventID,
 		))
 		require.NoError(t, err)
 		require.NoError(t, resp.Body.Close())
 
-		listUserEvents(t, user.Name, 0)
+		events, err = checkUserEventsGRPC(user.Name)
+		require.NoError(t, err)
+		require.Len(t, events, 1)
 	})
 
-	user = storage.User{ID: 2, Name: "SecondUser"}
+	user = createUser("SecondGRPCUser")
 	t.Run("list_upcoming_day", func(t *testing.T) {
-		id++
 		eDay := storage.Event{
-			ID:     id,
+			ID:     eventID,
 			Owner:  user,
 			Title:  "string",
 			Start:  processTime(time.Now().Add(25 * time.Hour)),
@@ -120,26 +121,23 @@ func TestCalendar(t *testing.T) {
 			// we need to notify the user
 			// 2 hours before the start of the event
 		}
-		createEvent(t, eDay)
+		createEventGRPC(t, &eDay)
 
-		id++
 		eWeek := eDay
-		eWeek.ID = id
+		eWeek.ID = eventID
 		eWeek.Start = processTime(time.Now().Add(7 * day))
 		eWeek.Notify = 24 * 60
-		createEvent(t, eWeek)
+		createEventGRPC(t, &eWeek)
 
-		id++
 		eMonth := eWeek
-		eMonth.ID = id
+		eMonth.ID = eventID
 		eMonth.Start = processTime(time.Now().Add(25 * day))
-		createEvent(t, eMonth)
+		createEventGRPC(t, &eMonth)
 
-		id++
 		eYear := eMonth
-		eYear.ID = id
+		eYear.ID = eventID
 		eYear.Start = processTime(time.Now().Add(365 * day))
-		createEvent(t, eYear)
+		createEventGRPC(t, &eYear)
 
 		resp, err := http.Get(addrGRPC + fmt.Sprintf(
 			"/list/%s/%d",
@@ -147,7 +145,8 @@ func TestCalendar(t *testing.T) {
 			0,
 		))
 		require.NoError(t, err)
-		events := getEvents(t, resp)
+		events, err := getEvents(resp)
+		require.NoError(t, err)
 		require.Equal(t, 1, len(events))
 		_, found := events[eDay.ID]
 		require.True(t, found)
@@ -158,7 +157,8 @@ func TestCalendar(t *testing.T) {
 			1,
 		))
 		require.NoError(t, err)
-		events = getEvents(t, resp)
+		events, err = getEvents(resp)
+		require.NoError(t, err)
 		require.Equal(t, 2, len(events))
 		_, found = events[eDay.ID]
 		require.True(t, found)
@@ -171,8 +171,10 @@ func TestCalendar(t *testing.T) {
 			2,
 		))
 		require.NoError(t, err)
-		events = getEvents(t, resp)
-		require.Equal(t, 3, len(events))
+		events, err = getEvents(resp)
+		require.NoError(t, err)
+		require.Len(t, events, 3)
+
 		_, found = events[eDay.ID]
 		require.True(t, found)
 		_, found = events[eWeek.ID]
@@ -204,15 +206,31 @@ func TestCalendar(t *testing.T) {
 	})
 }
 
-func processTime(t time.Time) time.Time {
-	// SERVER ROUNDS TIME TO MINUTES AND SETS LOCAL TO UTC
-	return t.Round(time.Minute).UTC()
+func checkUserEventsGRPC(username string) (EventMap, error) {
+	resp, err := http.Get(addrGRPC + "/list/" + username)
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := getEvents(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }
 
-func listUserEvents(t *testing.T, username string, l int) EventMap {
-	resp, err := http.Get(addrGRPC + "/list/" + username)
+func createEventGRPC(t *testing.T, e *storage.Event) {
+	eventID++
+	e.ID = eventID
+	resp, err := http.Get(addrGRPC + fmt.Sprintf(
+		"/create/%s/%s/%q/%q/%d",
+		e.Owner.Name,
+		e.Title,
+		e.Start.Format(TimeLayout),
+		e.Finish.Format(TimeLayout),
+		e.Notify,
+	))
 	require.NoError(t, err)
-	events := getEvents(t, resp)
-	require.Len(t, events, l)
-	return events
+	require.NoError(t, resp.Body.Close())
 }

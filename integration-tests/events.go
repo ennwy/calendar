@@ -2,24 +2,22 @@ package integration_tests
 
 import (
 	j "encoding/json"
-	"fmt"
 	"github.com/ennwy/calendar/internal/storage"
-	"github.com/stretchr/testify/require"
 	"io"
 	"log"
-	"net"
 	"net/http"
-	"os"
 	"strconv"
-	"testing"
 	"time"
 )
 
-const TimeLayout = "2006-01-02T15:04:05Z07:00"
+const (
+	//TimeLayout = "2006-01-02T15:04:05Z07:00"
+	TimeLayout = time.RFC3339Nano
 
-var addrGRPC = "http://" + net.JoinHostPort(os.Getenv("API_HOST"), os.Getenv("GRPC_PORT"))
+	day = 24 * time.Hour
+)
 
-//var addrHTTP = "http://" + net.JoinHostPort(os.Getenv("API_HOST"), os.Getenv("HTTP_PORT"))
+var userID, eventID int64
 
 // JSON convert int64 to string, so we need to parse it to int64
 
@@ -78,10 +76,30 @@ type grpcError struct {
 	Details []string `json:"details"`
 }
 
-func getEvents(t *testing.T, resp *http.Response) EventMap {
+func processTime(t time.Time) time.Time {
+	// SERVER ROUNDS TIME TO MINUTES AND SETS LOCAL TO UTC
+	return t.Round(time.Minute).UTC()
+}
+
+func createUser(username string) storage.User {
+	userID++
+	user := storage.User{
+		Name: username,
+		ID:   userID,
+	}
+
+	return user
+}
+
+func getEvents(resp *http.Response) (EventMap, error) {
 	json, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
-	require.Nil(t, resp.Body.Close())
+	if err != nil {
+		return nil, err
+	}
+
+	if err = resp.Body.Close(); err != nil {
+		return nil, err
+	}
 
 	eventQ := EventsString{}
 	err = j.Unmarshal(json, &eventQ)
@@ -92,20 +110,9 @@ func getEvents(t *testing.T, resp *http.Response) EventMap {
 	log.Println(eventQ)
 	log.Println()
 
-	require.NoError(t, err)
+	if err != nil {
+		return nil, err
+	}
 
-	return eventQ.getEvents()
-}
-
-func createEvent(t *testing.T, e storage.Event) {
-	resp, err := http.Get(addrGRPC + fmt.Sprintf(
-		"/create/%s/%s/%q/%q/%d",
-		e.Owner.Name,
-		e.Title,
-		e.Start.Format(TimeLayout),
-		e.Finish.Format(TimeLayout),
-		e.Notify,
-	))
-	require.NoError(t, err)
-	require.NoError(t, resp.Body.Close())
+	return eventQ.getEvents(), nil
 }
