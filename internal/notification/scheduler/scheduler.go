@@ -20,36 +20,51 @@ type Logger interface {
 	app.Logger
 }
 
+type MessageQ struct {
+	Q    amqp.Queue
+	Conn *amqp.Connection
+	Ch   *amqp.Channel
+	Opts noti.MQPublish
+}
+
+func (m *MessageQ) Close() (err error) {
+	l.Warn("Queue Closed")
+
+	if err = m.Ch.Close(); err != nil {
+		return fmt.Errorf("queue close: chan close: %w", err)
+	}
+
+	if err = m.Conn.Close(); err != nil {
+		return fmt.Errorf("queue close: Conn close: %w", err)
+	}
+
+	return nil
+}
+
 type Scheduler struct {
-	ctx     context.Context
-	q       amqp.Queue
-	conn    *amqp.Connection
-	ch      *amqp.Channel
+	mq  *MessageQ
+	ctx context.Context
+	//Q       amqp.Queue
+	//Conn    *amqp.Connection
+	//Ch      *amqp.Channel
+
 	storage Storage
-	opts    noti.MQPublish
 }
 
 var l Logger
 
-func New(ctx context.Context, storage Storage, log Logger, opts noti.MQProduce) (s *Scheduler, err error) {
-	l = log
-	l.Info("Scheduler created")
+func NewQueue(opts noti.MQProduce) (s *MessageQ, err error) {
+	s = &MessageQ{Opts: opts.Publish}
 
-	s = &Scheduler{
-		ctx:     ctx,
-		storage: storage,
-		opts:    opts.Publish,
+	if s.Conn, err = amqp.Dial(opts.Q.URL); err != nil {
+		return nil, fmt.Errorf("new conn: %w", err)
 	}
 
-	if s.conn, err = amqp.Dial(opts.Q.URL); err != nil {
-		return nil, fmt.Errorf("scheduler start: %w", err)
-	}
-
-	if s.ch, err = s.conn.Channel(); err != nil {
+	if s.Ch, err = s.Conn.Channel(); err != nil {
 		return nil, fmt.Errorf("start channel: %w", err)
 	}
 
-	if err = s.ch.ExchangeDeclare(
+	if err = s.Ch.ExchangeDeclare(
 		opts.Q.Name,
 		amqp.ExchangeDirect,
 		opts.Durable,
@@ -61,7 +76,7 @@ func New(ctx context.Context, storage Storage, log Logger, opts noti.MQProduce) 
 		return nil, fmt.Errorf("exchange declare: %w", err)
 	}
 
-	s.q, err = s.ch.QueueDeclare(
+	s.Q, err = s.Ch.QueueDeclare(
 		opts.Q.Name,
 		opts.Durable,
 		opts.AutoDelete,
@@ -71,6 +86,23 @@ func New(ctx context.Context, storage Storage, log Logger, opts noti.MQProduce) 
 	)
 
 	return s, err
+}
+
+func New(ctx context.Context, storage Storage, log Logger, opts noti.MQProduce) (s *Scheduler, err error) {
+	l = log
+
+	s = &Scheduler{
+		ctx:     ctx,
+		storage: storage,
+	}
+
+	s.mq, err = NewQueue(opts)
+	if err != nil {
+		return nil, fmt.Errorf("new scheduler: %w", err)
+	}
+
+	l.Info("Scheduler created")
+	return s, nil
 }
 
 func (s *Scheduler) Start() error {
@@ -103,11 +135,11 @@ func (s *Scheduler) Start() error {
 func (s *Scheduler) Stop() (err error) {
 	l.Warn("Scheduler Stopped")
 
-	if err = s.ch.Close(); err != nil {
-		return fmt.Errorf("scheduler stop: chan close: %w", err)
+	if err = s.mq.Close(); err != nil {
+		return fmt.Errorf("scheduler stop: %w", err)
 	}
 
-	return s.conn.Close()
+	return nil
 }
 
 func (s *Scheduler) publish() {
@@ -148,11 +180,11 @@ func (s *Scheduler) publishEvent(events *storage.Events) (err error) {
 			continue
 		}
 
-		err = s.ch.Publish(
+		err = s.mq.Ch.Publish(
 			"",
-			s.q.Name,
-			s.opts.Mandatory,
-			s.opts.Immediate,
+			s.mq.Q.Name,
+			s.mq.Opts.Mandatory,
+			s.mq.Opts.Immediate,
 			amqp.Publishing{
 				ContentType: "text/plain",
 				Body:        bEvent,

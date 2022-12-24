@@ -38,8 +38,8 @@ func NewSender(ctx context.Context, log Logger, opts noti.MQConsume) (s *Sender,
 	return s, nil
 }
 
-func (s *Sender) Start() error {
-	messageCH, err := s.ch.Consume(
+func (s *Sender) Start() (<-chan amqp.Delivery, error) {
+	messageCh, err := s.ch.Consume(
 		s.opts.Q.Name,
 		s.opts.Consumer,
 		s.opts.AutoAck,
@@ -50,19 +50,18 @@ func (s *Sender) Start() error {
 	)
 
 	if err != nil {
-		return fmt.Errorf("consumer create: %w", err)
+		return nil, fmt.Errorf("consumer create: %w", err)
 	}
 
 	l.Info("listening started")
-	s.receive(messageCH)
-	return nil
+	return messageCh, nil
 }
 
-func (s *Sender) receive(messageCH <-chan amqp.Delivery) {
+func (s *Sender) PrintMessages(messageCh <-chan amqp.Delivery) {
 	var e storage.Event
 	var counter int
 
-	for message := range messageCH {
+	for message := range messageCh {
 		select {
 		case <-s.ctx.Done():
 			return

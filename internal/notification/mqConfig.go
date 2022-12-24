@@ -38,7 +38,7 @@ type MQProduce struct {
 }
 
 func (q *MQProduce) Set() error {
-	q.Q.Name = os.Getenv("MQ_Q_NAME")
+	q.Q.Name = os.Getenv("MQ_PRODUCE_NAME")
 	q.Q.URL = os.Getenv("MQ_URL")
 	v, err := ParseBool(
 		mqImmediate,
@@ -73,7 +73,7 @@ type MQConsume struct {
 }
 
 func (q *MQConsume) Set() error {
-	q.Q.Name = os.Getenv("MQ_Q_NAME")
+	q.Q.Name = os.Getenv("MQ_CONSUME_NAME")
 	q.Q.URL = os.Getenv("MQ_URL")
 	q.Consumer = os.Getenv("MQ_CONSUMER")
 
