@@ -7,16 +7,19 @@ import (
 )
 
 type Config struct {
-	Logger c.LoggerConfig `yaml:"logger"`
-	MQ     noti.MQConsume `yaml:"mq"`
+	Logger    c.LoggerConfig `yaml:"logger"`
+	MQConsume noti.MQConsume `yaml:"MQConsume"`
+	MQProduce noti.MQProduce `yaml:"MQProduce"`
 }
 
-func NewConfig() (*Config, error) {
-	config := &Config{}
+func NewConfig() (config *Config, err error) {
+	config = &Config{}
 	config.Logger.Set()
 
-	if err := config.MQ.Set(); err != nil {
+	if err = config.MQConsume.Set(); err != nil {
 		return nil, fmt.Errorf("sender: new config: %w", err)
+	} else if err = config.MQProduce.Set(); err != nil {
+		return nil, fmt.Errorf("scheduler: new config: %w", err)
 	}
 
 	return config, nil
