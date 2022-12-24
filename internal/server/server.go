@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	TimeLayout = "2006-01-02T15:04:05Z07:00"
+	TimeLayout = time.RFC3339Nano
 
 	Day   = time.Hour * 24
 	Week  = 7 * Day

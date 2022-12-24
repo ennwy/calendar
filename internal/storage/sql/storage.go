@@ -16,7 +16,7 @@ const (
 	qUpdate     = "UPDATE events SET title = $2, start = $3, finish = $4, notify = $5 WHERE id = $1;"
 	qDelete     = "DELETE FROM events WHERE ID = $1;"
 	qUserEvents = "SELECT * FROM events WHERE owner = $1;"
-	// BETWEEN ISN'T USED BECAUSE WE DON'T NEED NOTIFY TO BE EQUAL SECOND ARG
+	// BETWEEN ISN'T USED BECAUSE WE DON'T NEED NOTIFY PARAM TO BE EQUAL SECOND ARG
 	qListUpcoming      = "SELECT * FROM events WHERE notify >= $1 AND notify < $2;"
 	qListUsersUpcoming = "SELECT * FROM events WHERE Owner = $1 AND notify >= $2 AND notify < $3"
 	qClean             = "DELETE FROM events WHERE finish <= $1"
