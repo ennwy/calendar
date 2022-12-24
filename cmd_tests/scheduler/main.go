@@ -30,7 +30,7 @@ func main() {
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
-	sched, err := s.New(ctx, storage, l, config.MQ)
+	sched, err := s.New(ctx, storage, l, config.MQProduce)
 	if err != nil {
 		l.Fatal("nil scheduler:", err)
 	}
