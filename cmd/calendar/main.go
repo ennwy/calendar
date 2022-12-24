@@ -21,6 +21,11 @@ import (
 var l app.Logger
 
 func main() {
+	if len(os.Args) > 0 && os.Args[0] == "version" {
+		printVersion()
+		return
+	}
+
 	config := NewConfig()
 	l = logger.New(config.Logger.Level, config.Logger.OutputPath)
 
