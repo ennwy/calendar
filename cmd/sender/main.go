@@ -28,7 +28,7 @@ func main() {
 	defer cancel()
 
 	s, err := sender.NewSender(ctx, l, config.MQ)
-	l.Info("New sender: err:", err, "\nSender:", s)
+	l.Info("NewSender: err:", err, "\nSender:", s)
 
 	if err != nil {
 		l.Error(err)
@@ -40,15 +40,18 @@ func main() {
 		l.Info("[ + ] stop: ctx canceled")
 
 		if err := s.Stop(); err != nil {
-			l.Error("Scheduler stop:", err)
+			l.Error("Sender stop:", err)
 		}
-		l.Info("[ + ] Scheduler stopped")
+		l.Info("[ + ] Sender stopped")
 	}()
 
-	if err = s.Start(); err != nil {
+	messageCh, err := s.Start()
+	if err != nil {
 		l.Error("sender: start", err)
 		//cancel()
 		os.Exit(1) //nolint:gocritic
 	}
+	s.PrintMessages(messageCh)
+
 	<-ctx.Done()
 }
