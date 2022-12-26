@@ -31,7 +31,8 @@ func TestHTTPEndpoint(t *testing.T) {
 			Finish: processTime(f),
 			Notify: 120,
 		}
-		createEventHTTP(t, &event1)
+		err = createEventHTTP(&event1)
+		require.NoError(t, err)
 
 		event2 := storage.Event{
 			Owner:  event1.Owner,
@@ -40,7 +41,8 @@ func TestHTTPEndpoint(t *testing.T) {
 			Finish: processTime(time.Now()),
 			Notify: 150,
 		}
-		createEventHTTP(t, &event2)
+		err = createEventHTTP(&event2)
+		require.NoError(t, err)
 
 		events, err := checkUserEventsGRPC(user.Name)
 		require.NoError(t, err)
@@ -127,23 +129,27 @@ func TestHTTPEndpoint(t *testing.T) {
 			// we need to notify the user
 			// 2 hours before the start of the event
 		}
-		createEventHTTP(t, &eDay)
+		err := createEventHTTP(&eDay)
+		require.NoError(t, err)
 
 		eWeek := eDay
 		eWeek.ID = eventID
 		eWeek.Start = processTime(time.Now().Add(7 * day))
 		eWeek.Notify = 24 * 60
-		createEventHTTP(t, &eWeek)
+		err = createEventHTTP(&eWeek)
+		require.NoError(t, err)
 
 		eMonth := eWeek
 		eMonth.ID = eventID
 		eMonth.Start = processTime(time.Now().Add(25 * day))
-		createEventHTTP(t, &eMonth)
+		err = createEventHTTP(&eMonth)
+		require.NoError(t, err)
 
 		eYear := eMonth
 		eYear.ID = eventID
 		eYear.Start = processTime(time.Now().Add(365 * day))
-		createEventHTTP(t, &eYear)
+		err = createEventHTTP(&eYear)
+		require.NoError(t, err)
 
 		resp, err := http.Get(addrHTTP + fmt.Sprintf(
 			"/list?owner=%s&until=%d",
@@ -209,7 +215,7 @@ func TestHTTPEndpoint(t *testing.T) {
 	})
 }
 
-func createEventHTTP(t *testing.T, e *storage.Event) {
+func createEventHTTP(e *storage.Event) error {
 	eventID++
 	e.ID = eventID
 
@@ -225,8 +231,11 @@ func createEventHTTP(t *testing.T, e *storage.Event) {
 	log.Println(query)
 
 	resp, err := http.Get(query)
-	require.NoError(t, err)
-	require.NoError(t, resp.Body.Close())
+	if err != nil {
+		return err
+	}
+
+	return resp.Body.Close()
 }
 
 func checkUserEventsHTTP(username string) (EventMap, error) {

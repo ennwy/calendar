@@ -32,16 +32,19 @@ func TestGRPCEndpoint(t *testing.T) {
 			Finish: processTime(f),
 			Notify: 120,
 		}
-		createEventGRPC(t, &event1)
+		err = createEventGRPC(&event1)
+		require.NoError(t, err)
 
 		event2 := storage.Event{
-			Owner:  user,
-			Title:  "some text",
-			Start:  processTime(time.Now().Add(-5 * time.Hour)), // Start must be before the
+			Owner: user,
+			Title: "some text",
+			// Start must be before the
+			Start:  processTime(time.Now().Add(-5 * time.Hour)),
 			Finish: processTime(time.Now()),
 			Notify: 150,
 		}
-		createEventGRPC(t, &event2)
+		err = createEventGRPC(&event2)
+		require.NoError(t, err)
 
 		events, err := checkUserEventsGRPC(user.Name)
 		require.NoError(t, err)
@@ -121,23 +124,27 @@ func TestGRPCEndpoint(t *testing.T) {
 			// we need to notify the user
 			// 2 hours before the start of the event
 		}
-		createEventGRPC(t, &eDay)
+		err := createEventGRPC(&eDay)
+		require.NoError(t, err)
 
 		eWeek := eDay
 		eWeek.ID = eventID
 		eWeek.Start = processTime(time.Now().Add(7 * day))
 		eWeek.Notify = 24 * 60
-		createEventGRPC(t, &eWeek)
+		err = createEventGRPC(&eWeek)
+		require.NoError(t, err)
 
 		eMonth := eWeek
 		eMonth.ID = eventID
 		eMonth.Start = processTime(time.Now().Add(25 * day))
-		createEventGRPC(t, &eMonth)
+		err = createEventGRPC(&eMonth)
+		require.NoError(t, err)
 
 		eYear := eMonth
 		eYear.ID = eventID
 		eYear.Start = processTime(time.Now().Add(365 * day))
-		createEventGRPC(t, &eYear)
+		err = createEventGRPC(&eYear)
+		require.NoError(t, err)
 
 		resp, err := http.Get(addrGRPC + fmt.Sprintf(
 			"/list/%s/%d",
@@ -220,9 +227,10 @@ func checkUserEventsGRPC(username string) (EventMap, error) {
 	return m, nil
 }
 
-func createEventGRPC(t *testing.T, e *storage.Event) {
+func createEventGRPC(e *storage.Event) error {
 	eventID++
 	e.ID = eventID
+
 	resp, err := http.Get(addrGRPC + fmt.Sprintf(
 		"/create/%s/%s/%q/%q/%d",
 		e.Owner.Name,
@@ -231,6 +239,10 @@ func createEventGRPC(t *testing.T, e *storage.Event) {
 		e.Finish.Format(TimeLayout),
 		e.Notify,
 	))
-	require.NoError(t, err)
-	require.NoError(t, resp.Body.Close())
+
+	if err != nil {
+		return err
+	}
+
+	return resp.Body.Close()
 }

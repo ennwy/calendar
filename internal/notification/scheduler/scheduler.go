@@ -7,10 +7,9 @@ import (
 	noti "github.com/ennwy/calendar/internal/notification"
 	"github.com/ennwy/calendar/internal/storage"
 	"github.com/streadway/amqp"
+	"sync"
 	"time"
 )
-
-const period = time.Minute
 
 type Storage interface {
 	app.CleanListener
@@ -42,13 +41,11 @@ func (m *MessageQ) Close() (err error) {
 }
 
 type Scheduler struct {
-	mq  *MessageQ
-	ctx context.Context
-	//Q       amqp.Queue
-	//Conn    *amqp.Connection
-	//Ch      *amqp.Channel
-
+	ctx     context.Context
 	storage Storage
+	period  noti.Period
+	mq      *MessageQ
+	mu      *sync.Mutex
 }
 
 var l Logger
@@ -88,48 +85,58 @@ func NewQueue(opts noti.MQProduce) (s *MessageQ, err error) {
 	return s, err
 }
 
-func New(ctx context.Context, storage Storage, log Logger, opts noti.MQProduce) (s *Scheduler, err error) {
+func New(
+	ctx context.Context, s Storage,
+	log Logger, opts noti.MQProduce,
+) (
+	scheduler *Scheduler, err error,
+) {
+	l.Info("[ + ] Scheduler created")
 	l = log
 
-	s = &Scheduler{
+	scheduler = &Scheduler{
 		ctx:     ctx,
-		storage: storage,
+		storage: s,
+		period:  opts.P,
+		mu:      &sync.Mutex{},
 	}
 
-	s.mq, err = NewQueue(opts)
+	_ = scheduler.period.Set()
+
+	scheduler.mq, err = NewQueue(opts)
 	if err != nil {
 		return nil, fmt.Errorf("new scheduler: %w", err)
 	}
 
-	l.Info("Scheduler created")
-	return s, nil
-}
-
-func (s *Scheduler) Start() error {
-	l.Warn("Scheduler started")
-	if err := s.storage.Connect(s.ctx); err != nil {
-		return err
+	if err = scheduler.storage.Connect(scheduler.ctx); err != nil {
+		return nil, fmt.Errorf("new scheduler: storage conn: %w", err)
 	}
 
-	go func() {
-		t := time.NewTicker(24 * time.Hour)
+	return scheduler, nil
+}
 
-		for {
-			select {
+func (s *Scheduler) Start() {
+	l.Warn("Scheduler started")
+	checkTimer := time.NewTicker(s.period.DBCheck)
+	clearTimer := time.NewTicker(s.period.Clear)
 
-			case <-s.ctx.Done():
-				return
+	for {
+		select {
 
-			case <-t.C:
-				if err := s.storage.Clean(s.ctx, 365*storage.Day); err != nil {
-					l.Error("start: clean:", err)
-				}
+		case <-checkTimer.C:
+			if err := s.Publish(); err != nil {
+				l.Error(err)
 			}
-		}
-	}()
 
-	s.publish()
-	return nil
+		case <-clearTimer.C:
+			if err := s.Clean(); err != nil {
+				l.Error(err)
+			}
+
+		case <-s.ctx.Done():
+			return
+		}
+	}
 }
 
 func (s *Scheduler) Stop() (err error) {
@@ -142,58 +149,71 @@ func (s *Scheduler) Stop() (err error) {
 	return nil
 }
 
-func (s *Scheduler) publish() {
-	var events *storage.Events
-	var err error
+func (s *Scheduler) Publish() error {
+	s.mu.Lock()
+	events, err := s.storage.ListUpcoming(s.ctx, s.period.DBCheck)
+	s.mu.Unlock()
 
-	for t := time.NewTicker(period); ; {
-		select {
-		case <-t.C:
-			events, err = s.storage.ListUpcoming(s.ctx, period)
-
-			if err != nil {
-				l.Error("scheduler: publish:", err)
-				l.Error("events: ", events.Events)
-				continue
-			}
-
-			if err = s.publishEvent(events); err != nil {
-				l.Error("publish: publish event:", err)
-			}
-
-		case <-s.ctx.Done():
-			l.Info("publish: ctx: done!")
-			return
-		}
+	if err != nil {
+		l.Error("scheduler: publish:", err)
+		l.Error("events: ", events)
+		return fmt.Errorf("scheduler: publish: list: %w", err)
 	}
+
+	if err = s.publishUpcoming(events); err != nil {
+		l.Error("publish: publish event:", err)
+		return fmt.Errorf("scheduler: publish: %w", err)
+	}
+
+	return nil
 }
 
-func (s *Scheduler) publishEvent(events *storage.Events) (err error) {
+func (s *Scheduler) publishUpcoming(events *storage.Events) (err error) {
 	l.Info("publish event: events found:", len(events.Events))
-	var bEvent []byte
 
 	for i, event := range events.Events {
 		l.Info("[", i, "] publishing event:", event)
 
-		if bEvent, err = event.Marshall(); err != nil {
-			l.Error("scheduler: publish: selecting: event:", err)
+		err = s.publishEvent(event)
+		if err != nil {
+			l.Error("publish upcoming:", err)
 			continue
 		}
+	}
 
-		err = s.mq.Ch.Publish(
-			"",
-			s.mq.Q.Name,
-			s.mq.Opts.Mandatory,
-			s.mq.Opts.Immediate,
-			amqp.Publishing{
-				ContentType: "text/plain",
-				Body:        bEvent,
-			},
-		)
+	return nil
+}
 
-		if err != nil {
-			l.Error("ERR publishing:", err)
-		}
+func (s *Scheduler) publishEvent(e storage.Event) (err error) {
+	var bEvent []byte
+
+	if bEvent, err = e.Marshall(); err != nil {
+		return err
+	}
+
+	err = s.mq.Ch.Publish(
+		"",
+		s.mq.Q.Name,
+		s.mq.Opts.Mandatory,
+		s.mq.Opts.Immediate,
+		amqp.Publishing{
+			ContentType: "text/plain",
+			Body:        bEvent,
+		},
+	)
+
+	return err
+}
+
+func (s *Scheduler) Clean() error {
+	l.Info("scheduler: storage clean started")
+
+	s.mu.Lock()
+	err := s.storage.Clean(s.ctx, 365*storage.Day)
+	s.mu.Unlock()
+
+	if err != nil {
+		return fmt.Errorf("start: clean: %w", err)
 	}
 
 	return nil
