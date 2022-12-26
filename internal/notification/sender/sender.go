@@ -23,7 +23,7 @@ type Sender struct {
 
 var l Logger
 
-func NewSender(ctx context.Context, log Logger, opts noti.MQConsume) (s *Sender, err error) {
+func New(ctx context.Context, log Logger, opts noti.MQConsume) (s *Sender, err error) {
 	l = log
 
 	s = &Sender{ctx: ctx, opts: opts}

@@ -17,7 +17,7 @@ const (
 	day = 24 * time.Hour
 )
 
-var userID, eventID int64
+var userID, eventID int64 = 0, 0
 
 // JSON convert int64 to string, so we need to parse it to int64
 

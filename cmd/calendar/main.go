@@ -8,7 +8,7 @@ import (
 	intergrpc "github.com/ennwy/calendar/internal/server/grpc"
 	interhttp "github.com/ennwy/calendar/internal/server/http"
 	//pb "github.com/ennwy/calendar/internal/server/grpc/google"
-	s "github.com/ennwy/calendar/internal/storage/sql"
+	storage "github.com/ennwy/calendar/internal/storage/sql"
 	"time"
 
 	"net"
@@ -30,7 +30,7 @@ func main() {
 	l = logger.New(config.Logger.Level, config.Logger.OutputPath)
 
 	l.Info("[ + ] CONFIG:", config)
-	calendar := app.New(l, s.New(l))
+	calendar := app.New(l, storage.New(l))
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)

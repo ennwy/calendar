@@ -16,13 +16,15 @@ const (
 	qUpdate     = "UPDATE events SET title = $2, start = $3, finish = $4, notify = $5 WHERE id = $1;"
 	qDelete     = "DELETE FROM events WHERE ID = $1;"
 	qUserEvents = "SELECT * FROM events WHERE owner = $1;"
+
 	// BETWEEN ISN'T USED BECAUSE WE DON'T NEED NOTIFY PARAM TO BE EQUAL SECOND ARG
-	qListUpcoming      = "SELECT * FROM events WHERE notify >= $1 AND notify < $2;"
-	qListUsersUpcoming = "SELECT * FROM events WHERE Owner = $1 AND notify >= $2 AND notify < $3"
-	qClean             = "DELETE FROM events WHERE finish <= $1"
+	qListUpcoming = "SELECT * FROM events WHERE notify >= $1 AND notify < $2;"
+
+	//qListUsersUpcoming = "SELECT * FROM events WHERE Owner = $1 AND notify >= $2 AND notify < $3"
+	qListUsersUpcoming = "SELECT * FROM events WHERE owner = $1 AND notify BETWEEN $2 AND $3;"
+	qClean             = "DELETE FROM events WHERE finish <= $1;"
 
 	// Time format for db select
-	dayRounded    = "2006-01-02"
 	minuteRounded = "2006-01-02 15:04:05"
 )
 
@@ -172,7 +174,7 @@ func (s *Storage) ListUsersUpcoming(ctx context.Context, user string, until time
 		until = -until
 	}
 
-	current := time.Now().Round(time.Minute)
+	current := time.Now()
 	bound := current.Add(until)
 
 	l.Info("Looking for events between:", current.Format(minuteRounded), "AND", bound.Format(minuteRounded))
@@ -197,15 +199,17 @@ func (s *Storage) Clean(ctx context.Context, ago time.Duration) error {
 		ago = -ago
 	}
 
-	finishedAgo := time.Now().Round(24 * time.Hour).UTC().Add(ago)
+	finishedAgo := time.Now().UTC().Round(storage.Day).Add(ago)
+	l.Info("[ + ] Scheduler CLEAN ago:", finishedAgo.Format(minuteRounded))
 
 	if _, err := s.db.Exec(
 		ctx,
 		qClean,
-		finishedAgo.Format(dayRounded),
+		finishedAgo.Format(minuteRounded),
 	); err != nil {
 		return fmt.Errorf("clean events: %w", err)
 	}
+
 	return nil
 }
 

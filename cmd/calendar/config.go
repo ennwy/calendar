@@ -1,36 +1,17 @@
 package main
 
 import (
-	c "github.com/ennwy/calendar/cmd"
+	"github.com/ennwy/calendar/internal/logger"
+	"github.com/ennwy/calendar/internal/server"
 	"os"
 )
 
 type Config struct {
-	Logger  c.LoggerConfig `yaml:"logger"`
-	HTTP    HTTPConfig     `yaml:"http"`
-	GRPC    GRPCConfig     `yaml:"grpc"`
-	Storage string         `yaml:"storage"`
-	Server  string         `yaml:"server"`
-}
-
-type HTTPConfig struct {
-	Host string `yaml:"host"`
-	Port string `yaml:"port"`
-}
-
-func (h *HTTPConfig) Set() {
-	h.Host = os.Getenv("HTTP_HOST")
-	h.Port = os.Getenv("HTTP_PORT")
-}
-
-type GRPCConfig struct {
-	Host string `yaml:"host"`
-	Port string `yaml:"port"`
-}
-
-func (g *GRPCConfig) Set() {
-	g.Host = os.Getenv("GRPC_HOST")
-	g.Port = os.Getenv("GRPC_PORT")
+	Logger  logger.Config     `yaml:"logger"`
+	HTTP    server.HTTPConfig `yaml:"http"`
+	GRPC    server.GRPCConfig `yaml:"grpc"`
+	Storage string            `yaml:"storage"`
+	Server  string            `yaml:"server"`
 }
 
 func NewConfig() *Config {

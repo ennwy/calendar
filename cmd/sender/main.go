@@ -20,15 +20,15 @@ func main() {
 
 	l = logger.New(config.Logger.Level, config.Logger.OutputPath)
 
-	l.Error("sender: config:", err)
+	l.Error("sender: configs:", err)
 	l.Info("[ + ] CONFIG:", config)
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
-	s, err := sender.NewSender(ctx, l, config.MQ)
-	l.Info("NewSender: err:", err, "\nSender:", s)
+	s, err := sender.New(ctx, l, config.MQ)
+	l.Info("New: err:", err, "\nSender:", s)
 
 	if err != nil {
 		l.Error(err)

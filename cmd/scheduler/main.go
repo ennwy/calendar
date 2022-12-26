@@ -6,7 +6,6 @@ import (
 	"github.com/ennwy/calendar/internal/logger"
 	s "github.com/ennwy/calendar/internal/notification/scheduler"
 	sqlstorage "github.com/ennwy/calendar/internal/storage/sql"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -21,7 +20,7 @@ func main() {
 	}
 
 	l = logger.New(config.Logger.Level, config.Logger.OutputPath)
-	l.Error("scheduler: config:", err)
+	l.Error("scheduler: configs:", err)
 	l.Info("[ + ] CONFIG:", config)
 
 	var storage app.CleanListener = sqlstorage.New(l)
@@ -50,9 +49,6 @@ func main() {
 		l.Info("[ + ] Scheduler stopped")
 	}()
 
-	if err := sched.Start(); err != nil {
-		l.Error("scheduler: start:", err)
-		//cancel()
-		os.Exit(1) //nolint:gocritic
-	}
+	sched.Start()
+	l.Info("scheduler: start:", err)
 }

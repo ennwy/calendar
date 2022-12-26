@@ -22,8 +22,6 @@ services:
       - HTTP_HOST=${HTTP_HOST}
       - HTTP_PORT=${HTTP_PORT}
 
-      - STORAGE=${STORAGE}
-
       - DATABASE_USER=${DB_USER}
       - DATABASE_PASSWORD=${DB_PASSWORD}
       - DATABASE_NAME=${DB_NAME}
@@ -46,6 +44,8 @@ services:
     environment:
       - LOG_LEVEL=${LOG_LEVEL}
       - LOG_OUTPUT_PATH=${LOG_OUTPUT_PATH}
+
+      - PERIOD_CLEAR=${PERIOD_CLEAR}
 
       - DATABASE_USER=${DB_USER}
       - DATABASE_PASSWORD=${DB_PASSWORD}
@@ -96,7 +96,7 @@ services:
     volumes:
       - ../.data/rabbitmq/data:/var/lib/rabbitmq/mnesia/rabbit@my-rabbit
       - ../.data/rabbitmq/logs:/var/log/rabbitmq/log
-    hostname: ${API_HOST}
+    hostname: "rabbitmq"
     expose:
       - "15672:15672"
       - "5672:5672"

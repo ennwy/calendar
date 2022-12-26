@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	Day = time.Hour * 24
+	Day = 24 * time.Hour
 )
 
 type User struct {

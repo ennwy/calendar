@@ -22,14 +22,14 @@ func main() {
 
 	l = logger.New(config.Logger.Level, config.Logger.OutputPath)
 
-	l.Error("s: config:", err)
+	l.Error("s: configs:", err)
 	l.Info("[ + ] CONFIG:", config)
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
-	receiver, err := sender.NewSender(ctx, l, config.MQConsume)
+	receiver, err := sender.New(ctx, l, config.MQConsume)
 	l.Info("New receiver: err:", err, "\nReceiver:", receiver)
 	if err != nil {
 		l.Error(err)
@@ -85,7 +85,7 @@ func main() {
 		if err != nil {
 			l.Error("ERR publishing received event:", err)
 		}
-		l.Info(message.Body, "\n")
+		l.Info(string(message.Body), "\n")
 
 		if err := message.Ack(false); err != nil {
 			l.Error("message ack:", err)

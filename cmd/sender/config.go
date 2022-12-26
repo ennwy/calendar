@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	c "github.com/ennwy/calendar/cmd"
-	noti "github.com/ennwy/calendar/internal/notification"
+	"github.com/ennwy/calendar/internal/logger"
+	"github.com/ennwy/calendar/internal/notification"
 )
 
 type Config struct {
-	Logger c.LoggerConfig `yaml:"logger"`
-	MQ     noti.MQConsume `yaml:"mq"`
+	Logger logger.Config          `yaml:"logger"`
+	MQ     notification.MQConsume `yaml:"MQConsume"`
 }
 
 func NewConfig() (*Config, error) {
@@ -16,7 +16,7 @@ func NewConfig() (*Config, error) {
 	config.Logger.Set()
 
 	if err := config.MQ.Set(); err != nil {
-		return nil, fmt.Errorf("sender: new config: %w", err)
+		return nil, fmt.Errorf("sender: new configs: %w", err)
 	}
 
 	return config, nil

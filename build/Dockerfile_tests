@@ -5,13 +5,10 @@ ENV CODE_DIR /go/src
 
 WORKDIR ${CODE_DIR}
 
-COPY ./internal/storage/event.go ${CODE_DIR}/internal/storage/event.go
+COPY ./internal ${CODE_DIR}/internal
 COPY ./integration-tests ${CODE_DIR}/integration-tests
 
-#RUN go mod init github.com/ennwy/calendar
 COPY ./go.mod .
 RUN go mod tidy
 
 WORKDIR integration-tests
-
-#RUN CGO_ENABLED=0 go test -co ./bin ./integration-tests/...
