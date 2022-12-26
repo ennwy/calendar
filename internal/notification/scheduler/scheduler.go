@@ -91,8 +91,8 @@ func New(
 ) (
 	scheduler *Scheduler, err error,
 ) {
-	l.Info("[ + ] Scheduler created")
 	l = log
+	l.Info("[ + ] Scheduler created")
 
 	scheduler = &Scheduler{
 		ctx:     ctx,
